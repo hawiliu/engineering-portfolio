@@ -87,23 +87,23 @@ flowchart TB
 Before the audit there were two implementations, and the docstring records exactly what they disagreed about:
 
 ```python
-"""Crypto Quant Platform — 訊號引擎（回測與實盤的唯一計算路徑）
+"""Crypto Quant Platform: signal engine (the single computation path for backtest and live)
 
-為什麼要有這一層（審查報告 P0-5）：
+Why this layer exists (audit report P0-5):
 
-    改造前，同一份因子程式碼在兩邊跑出來的結果不一樣——
-      研究時：`execute_factor_code_rolling(lookback=400)`，餵 1020 根
-      實盤時：`test_factor_code(df)` single-pass，只餵 100 根
-    EMA/RSI/ATR 的暖身值不同 → 實盤訊號與回測訊號本來就不會一樣，
-    再加上風險比例一邊 0.05、一邊硬編 0.10，實盤曝險是回測的兩倍。
+    Before the refactor, the same factor code produced different results on each side:
+      research: `execute_factor_code_rolling(lookback=400)`, fed 1020 bars
+      live:     `test_factor_code(df)` single-pass, fed only 100 bars
+    Different EMA/RSI/ATR warm-up -> live and backtest signals could never match,
+    and the risk fraction was 0.05 on one side and a hardcoded 0.10 on the other: live exposure was twice the backtest's.
 
-本模組保證：**同一份 code + 同一段資料 + 同一個 lookback → 同一個訊號**。
+This module guarantees: **same code + same data + same lookback -> same signal**.
 """
 DEFAULT_LOOKBACK = 400
 
 @dataclass(frozen=True)
 class ExecutionParams:
-    """回測與實盤共用的執行參數（單一真實來源，不要在任何地方硬編）"""
+    """Execution parameters shared by backtest and live (single source of truth; never hardcode them anywhere)"""
 ```
 
 Two lookbacks, 1020 bars against 100, gave EMA/RSI/ATR different warm-up state, so the two paths were never going to agree. On top of that the live risk fraction was hardcoded at `0.10` against a backtest using `0.05`: **live exposure was twice what the backtest measured**. `ExecutionParams` is a frozen dataclass precisely so there is one place for those numbers.
@@ -115,9 +115,9 @@ def test_live_signal_matches_backtest_series_bar_by_bar(price_df):
     bt = signal_engine.backtest_series(FACTOR_CODE, price_df, lookback=DEFAULT_LOOKBACK)
     series = bt["series"]
 
-    # 只檢查暖身期之後的 bar（之前是不完整視窗，實盤本來就不該在那裡下單）
+    # only check bars after warm-up (earlier windows are incomplete; live should never trade there)
     for k in range(DEFAULT_LOOKBACK, len(price_df), 17):
-        # 實盤：此刻只看得到前 k 根已收盤 K 棒
+        # live: at this moment only the first k closed bars are visible
         live, err = signal_engine.live_signal(
             FACTOR_CODE, price_df.iloc[:k], lookback=DEFAULT_LOOKBACK
         )
@@ -174,9 +174,9 @@ The false winner: **Sharpe 1.42, return +185%, 120 trades, t = 1.86.** Pure nois
 ```python
 def _random_signal() -> np.ndarray:
     if req.mode == "persistent":
-        # 持續型隨機：切換點服從幾何分布，期望換手次數 = target_trades。
-        # 這是唯一有比較價值的對照組——逐根 iid 的換手率是真因子的幾十倍，
-        # 光成本就會把它打到 -100%，那條「運氣線」量不到任何東西。
+        # Persistent random: switch points follow a geometric distribution, expected switches = target_trades.
+        # This is the only control worth comparing against: per-bar iid turnover is tens of times a real
+        # factor's, costs alone drive it to -100%, and that "luck line" measures nothing.
         switch_p = min(1.0, req.target_trades / max(n, 1))
         switches = rng.random(n) < switch_p
         switches[0] = True
@@ -190,11 +190,11 @@ Per-bar iid random signals flip position every bar, so their turnover is tens of
 ```python
 target_trades: int = Field(
     200, ge=10, le=20000,
-    description="持倉切換次數目標。**要與被比較的真因子換手率相當**，"
-                "否則運氣線沒有比較價值（換手差一個量級，成本就差一個量級）",
+    description="Target number of position switches. **Must match the turnover of the real factor being compared**, "
+                "otherwise the luck line is meaningless (an order of magnitude in turnover is an order of magnitude in cost)",
 )
-# ⚠ 出場機制必須與挖礦當下用的一致，運氣線才有比較價值。
-stop_atr_mult: Optional[float] = Field(2.0, description="None = 改用固定 SL/TP")
+# ⚠ Exits must match what the mining loop used at the time, or the luck line is meaningless.
+stop_atr_mult: Optional[float] = Field(2.0, description="None = use fixed SL/TP instead")
 ```
 
 Turnover-matched, with the same ATR stop and trailing exit the mining loop uses, **40 trials give Sharpe mean −0.67, std 0.72, p95 +0.66, max +1.07.** Which yields the operating rule: a real factor that does not clearly exceed **+0.66** is a sampling extreme, not a discovery.

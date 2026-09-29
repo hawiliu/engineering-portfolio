@@ -14,8 +14,8 @@
 | **角色** | 獨力完成 |
 | **期間** | 2026-03 至 2026-05 · 100 個 commit |
 | **規模** | 202 個 C# 檔 · 全體約 40,700 行，其中**伺服器 6,351 行（16%）**、工具 23,034 行（57%） |
-| **介面規模** | 39 個型別化訊息定義 · 28 個 handler · 1,240 行派送對應表 |
-| **狀態** | 派送完整；戰鬥結算刻意留樁 |
+| **介面規模** | 39 個型別化訊息定義 · 28 個 handler · 1,240 行分派對應表 |
+| **狀態** | 分派完整；戰鬥結算刻意留 stub |
 | **原始碼** | 私有 · 面談階段可安排讀取權限 |
 
 ## 2. 技術棧
@@ -29,7 +29,7 @@
 | **網路** | `System.Net.Sockets.Socket`（非 `TcpListener`）· `AcceptAsync(CancellationToken)` · backlog 65,535 |
 | **Framing** | `System.Buffers.Binary.BinaryPrimitives` 搭 `Span<byte>` · 長度前綴 · 串流重組 |
 | **序列化** | `BinaryReader` 子類別加上大端序讀取 · 逐訊息 parse/serialise · 輸入壞掉回傳 null |
-| **派送** | 自訂 `Attribute` · `Assembly.GetTypes()` 掃描 · `Activator.CreateInstance` · 以訊息型別為鍵的字典 |
+| **分派** | 自訂 `Attribute` · `Assembly.GetTypes()` 掃描 · `Activator.CreateInstance` · 以訊息型別為鍵的字典 |
 | **持久化** | `IAccountRepository` → `JsonDB`（一帳號一資料夾、一角色一 JSON）· `ISessionManager` → 記憶體內 |
 | **靜態資料** | CSV 經 `.csproj` 的 `None Include` + `CopyToOutputDirectory=PreserveNewest` 連結 |
 | **測試** | NUnit 4.3.2 · `Microsoft.NET.Test.Sdk` 17.14.0 · `coverlet.collector` |
@@ -39,7 +39,7 @@
 ```text
 solution（12 個專案）
 ├── utils          319     無依賴
-├── common       1,785     無依賴 — 1,240 行派送對應表、CSV、enum
+├── common       1,785     無依賴 — 1,240 行分派對應表、CSV、enum
 ├── logging         78  →  utils
 ├── packets      7,853  →  common, utils      39 個型別化定義，零 NuGet 套件
 ├── network        762  →  packets, logging   Socket、framing
@@ -133,7 +133,7 @@ Options 把 `appsettings.json` 綁成型別安全的物件，所以連接埠與�
 </details>
 
 <details>
-<summary><b>用屬性掃描做派送，以及它在 Composition root 上開的那個洞</b></summary>
+<summary><b>用屬性掃描做分派，以及它在 Composition root 上開的那個洞</b></summary>
 
 Handler 是啟動時用反射找出來的，不是列在一張表上：
 
@@ -295,13 +295,13 @@ flowchart BT
 
 ## 6. 限制
 
-- **Handler 登錄表沒有啟動期驗證**（屬性掃描派送）。重複或放錯位置的屬性是一個無聲的 no-op。一小時的工作，清單第一項。
-- **派送沒有測試。** 測試專案是 NUnit 4，並接上了 `coverlet.collector`，但它只覆蓋訊息序列化，所以一個綁到錯誤識別字的 handler 不會讓 build 失敗。
-- **Handler 無法用建構子注入**（屬性掃描派送）這是一個其餘皆由容器驅動的設計裡，唯一的不一致。
-- **戰鬥結算是樁。** 戰鬥 handler 套用一個固定傷害常數，並帶著一份編號的公式清單，註解就標在產出那個錯誤數字的那一行。派送是完整的、結算不是，而**這裡的任何行為都不該被描述成一個遊戲實作**。
+- **Handler 登錄表沒有啟動期驗證**（屬性掃描分派）。重複或放錯位置的屬性是一個無聲的 no-op。一小時的工作，清單第一項。
+- **分派沒有測試。** 測試專案是 NUnit 4，並接上了 `coverlet.collector`，但它只覆蓋訊息序列化，所以一個綁到錯誤識別字的 handler 不會讓 build 失敗。
+- **Handler 無法用建構子注入**（屬性掃描分派）這是一個其餘皆由容器驅動的設計裡，唯一的不一致。
+- **戰鬥結算是 stub。** 戰鬥 handler 套用一個固定傷害常數，並帶著一份編號的公式清單，註解就標在產出那個錯誤數字的那一行。分派是完整的、結算不是，而**這裡的任何行為都不該被描述成一個遊戲實作**。
 - **`JsonDB` 沒有遷移，也沒有耐久性測試。** 它是那個 repository 介面的一份可用實作，不是一個資料層。
 
-依序：啟動時驗證登錄表、測試派送、然後把 `Activator.CreateInstance` 換成早就在那裡的容器，那會補掉那個洞，也讓前兩項更容易維持。
+依序：啟動時驗證登錄表、測試分派、然後把 `Activator.CreateInstance` 換成早就在那裡的容器，那會補掉那個洞，也讓前兩項更容易維持。
 
 ## 7. 參考
 
@@ -312,7 +312,7 @@ flowchart BT
 | **DI** | `Microsoft.Extensions.DependencyInjection`,singleton 生命週期，具體型別加 hosted service 的雙重註冊 |
 | **網路** | `System.Net.Sockets.Socket`、`AcceptAsync(CancellationToken)`、backlog 65,535、`System.Buffers.Binary.BinaryPrimitives` 搭 `Span<byte>`、長度前綴 framing 與串流重組 |
 | **序列化** | `BinaryReader` 子類別加上大端序讀取方法，逐訊息 parse 與 serialise，輸入壞掉回傳 null |
-| **派送** | 自訂 `Attribute`、`Assembly.GetTypes()` 掃描、`Activator.CreateInstance`、以訊息型別為鍵的字典 |
+| **分派** | 自訂 `Attribute`、`Assembly.GetTypes()` 掃描、`Activator.CreateInstance`、以訊息型別為鍵的字典 |
 | **持久化** | `IAccountRepository` → `JsonDB`（一帳號一資料夾、一角色一 JSON）、`ISessionManager` → 記憶體內 |
 | **靜態資料** | CSV 經 `.csproj` 的 `None Include` + `CopyToOutputDirectory=PreserveNewest` 連結，載入 singleton 登錄 |
 | **測試** | NUnit 4.3.2、`Microsoft.NET.Test.Sdk` 17.14.0、`coverlet.collector` |

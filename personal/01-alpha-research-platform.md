@@ -88,9 +88,10 @@ UCB scores an arm as `exploit + explore`. The textbook exploration term is `sqrt
 The bonus was more than twice the full spread of the quantity it was supposed to be traded against, so ordering was decided almost entirely by "least tried". **UCB had become a novelty ranker while reporting healthy statistics.**
 
 ```python
-# UCB 探索係數（2026-08-07 尺度修正）：原公式 sqrt(2·ln N / t) 在現場（2793 arms、~8 trial/arm）
-# 算出 ≈1.58——比 win_rate 全距（0.06-0.72）大兩倍，UCB 退化成「沒試過的先上」的新奇度排序。
-# 比照精煉軌 UCT 的同款修正（run_miner mcts_c 1.4→0.3），讓 exploit 項真正參與決策。
+# UCB exploration constant (scale fix, 2026-08-07): the textbook sqrt(2·ln N / t), at live scale
+# (2793 arms, ~8 trials/arm), evaluates to ≈1.58, over twice the full win_rate range (0.06-0.72),
+# so UCB degenerates into a novelty ranking ("untried first").
+# Same fix as the refinement track's UCT (run_miner mcts_c 1.4→0.3), so the exploit term actually counts.
 UCB_C = 0.3
 
 def score_ucb(arm: dict, total_trials: int, explore_scale: float = 1.0) -> float:
@@ -115,7 +116,7 @@ Arms were originally keyed `op_category::field_category`, for example `ts_rank::
 
 ```python
 def get_arm(weights: Dict[str, dict], expr: str) -> dict:
-    """讀 arm：scoped key 優先，缺 → 舊（無 scope）key 當先驗 fallback（避免全量重學的探索風暴）。"""
+    """Read an arm: scoped key first; if missing, fall back to the legacy (unscoped) key as a prior (avoids a full relearning exploration storm)."""
     k = arm_key(expr)
     arm = weights.get(k)
     if arm is not None:
@@ -131,11 +132,12 @@ def get_arm(weights: Dict[str, dict], expr: str) -> dict:
 The state file behind this holds **10,245 arms across 281,104 trials**, and the comment above the load guard is the reason it exists:
 
 ```python
-# 讀取失敗旗標：與 `refine_state` 同一套防護（2026-09-09）。
-# ⚠ 這裡的風險比 refine_ledger 更高：①同樣是「讀取例外 → 靜默回 {} → 下次 save 寫回去」
-# ②原本 `open(path,"w")` **不是原子寫**，寫到一半崩潰就直接毀檔（ledger 至少有 tmp+os.replace）。
-# 檔案裡是 10,245 個 arm／281,104 次 trial 的取樣學習成果，歸零不會有任何錯誤訊息，
-# 只會表現成「bandit 排序突然變回隨機、挖掘效率下降」。
+# Load-failure flag: same guard as `refine_state` (2026-09-09).
+# ⚠ The risk here is higher than refine_ledger: (1) same pattern, "load exception -> silently return {}
+# -> next save writes it back"; (2) the original `open(path,"w")` was **not an atomic write**, so a crash
+# mid-write destroyed the file (the ledger at least had tmp + os.replace).
+# The file holds what sampling learned over 10,245 arms / 281,104 trials. Losing it raises no error;
+# it only shows up as "bandit ranking suddenly back to random, mining efficiency drops".
 _LOAD_FAILED = False
 ```
 
@@ -152,8 +154,9 @@ All five providers are reached through one 896-line module. The circuit breaker 
 _CB_THRESHOLD = 3
 _CB_COOLDOWN_S = 900
 _cb_state: dict[str, dict] = {}   # provider -> {"fails": int, "open_until": float}
-# CB 狀態落地檔案跨進程共享：loop 每個精煉/實驗 job 都是新 subprocess——per-process 記憶體
-# 讓 CB 永遠學不會、每輪對掛掉的 provider 重付 timeout 學費（2026-07-10 審計）。
+# CB state is persisted to a file and shared across processes: every refine/experiment job in the loop is a
+# fresh subprocess, so per-process memory meant the CB never learned and every round paid the timeout
+# again on a dead provider (2026-07-10 audit).
 _CB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "llm_cb_state.json")
 ```
 
@@ -163,7 +166,7 @@ def _cb_save() -> None:
         tmp = _CB_PATH + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(_cb_state, f)
-        os.replace(tmp, _CB_PATH)     # 原子替換：寫到一半崩潰不會留半截檔
+        os.replace(tmp, _CB_PATH)     # atomic replace: a crash mid-write never leaves a truncated file
     except Exception:
         pass
 ```
@@ -193,7 +196,7 @@ def _parse_json(content: str, require_key: str | None, strict: bool = False):
             except Exception:
                 continue
             if require_key is not None and not (isinstance(obj, dict) and require_key in obj):
-                break      # 解析成功但缺 require_key → 換下一個候選
+                break      # parsed, but missing require_key -> try the next candidate
             return obj
     return None
 ```
@@ -201,9 +204,9 @@ def _parse_json(content: str, require_key: str | None, strict: bool = False):
 Repair handles the malformations that actually recur (illegal backslash escapes from LaTeX-like notation, curly quotation marks, trailing commas), and **only runs on candidates `json.loads` has already rejected**:
 
 ```python
-s = re.sub(r'\\(?!["\\/bfnrtu])', "", s)   # ① 非法逃逸的反斜線
-s = s.replace("“", '"').replace("”", '"')  # ② 彎引號
-s = re.sub(r",\s*([}\]])", r"\1", s)       # ③ 尾逗號
+s = re.sub(r'\\(?!["\\/bfnrtu])', "", s)   # (1) illegal backslash escapes
+s = s.replace("“", '"').replace("”", '"')  # (2) curly quotes
+s = re.sub(r",\s*([}\]])", r"\1", s)       # (3) trailing commas
 ```
 
 **That ordering is the whole safety argument.** A repair function that alters valid input is worse than no repair at all; because valid JSON parses on the first attempt and never reaches the repair path, this one cannot corrupt good data. It is covered by an inline self-test with eight assertions, runnable with no network.
@@ -230,9 +233,9 @@ Measured over 15 days: 2,216 rounds integrated, 65 degraded to a single model, *
 Per-generator timeouts resolve as `min`, never "caller wins", and the comment explains why in terms of a real incident:
 
 ```python
-# ⚠ 語意是「這個 generator 最多等 N 秒」＝取 min，不是「優先用誰」：
-# refine_via_agnes 的 timeout 預設 240 且呼叫端沒覆寫 → 會一路傳成 ensemble(timeout=240)，
-# 若寫成「呼叫端優先」，per-generator 設定就永遠被繞過、靜默失效。
+# ⚠ Semantics are "this generator waits at most N seconds" = take the min, not "who takes priority":
+# refine_via_agnes defaults timeout to 240 and callers don't override it, so it flows through as
+# ensemble(timeout=240). With "caller wins", per-generator settings would always be bypassed, silently.
 return min(base, int(_t)) if _t else base
 ```
 

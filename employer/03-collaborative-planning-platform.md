@@ -14,7 +14,7 @@
 | **Role** | Largest of four contributors, **116 of 236 commits**; backend, frontend and deployment. Not a solo project |
 | **Period** | Roughly six months |
 | **Scale** | Three independent build-time variation axes; a build matrix rather than a build |
-| **Attribution** | Tier gates, module isolation and pagination guard tests are colleagues' work; the colour scan, token completeness check and my feature's six guard tests are mine |
+| **Attribution** | Tier gates, module isolation and pagination guard tests are colleagues' work; the colour scan, token completeness check and my feature's six guard tests are mine. The team's AI-assisted workflow was co-built; I was a main contributor, and the agent-driven browser checks are mine |
 | **State** | In development |
 | **Source** | Employer's property; not published |
 
@@ -29,7 +29,7 @@
 | **Contract** | Generated API specification with custom transformations; generated typed client, validators and mocks |
 | **Observability** | Structured logging to console and a central cluster, with a file fallback for offline sites |
 | **Infrastructure** | Containers, CI build matrix, orchestration chart for cloud deployment (colleagues' work), and a separate single-server offline deployment path (mine) |
-| **Testing** | Backend integration tests against a real containerised database; frontend unit and component tests; reflection-based architecture guard tests |
+| **Testing** | Backend integration tests against a real containerised database; frontend unit and component tests; reflection-based architecture guard tests; unit tests derived from QA test cases; agent-driven browser checks of on-screen behaviour (mine) |
 
 ## 3. Architecture
 
@@ -96,6 +96,7 @@ flowchart TB
 | **Four scopes of state synchronisation** | Within tab / across tabs (ephemeral only) / across machines / durable (write, then publish) | Without a model every feature re-decides ad hoc, and the bugs are a change visible in one tab and not another |
 | **Exhaustive event matching** | Real-time handlers as exhaustive matches, not conditional chains | Adding an event type without handling it fails to compile instead of being silently ignored |
 | **One shared schema, strict superset** | Identical schema across tiers; advanced structures present but never written on basic | Divergent schemas make a tier upgrade a data-migration project; one schema makes it a redeployment |
+| **AI-assisted team workflow** *(co-built)* | Off-the-shelf MCP servers let the coding agent read the product spec documents and the design files, then draft an implementation spec before coding; shared agent instruction files, reusable skills and generated shared specs | Four developers each driving an agent drift into four slightly different architectures. Shared context keeps parallel work consistent, so features built at the same time still interact correctly |
 
 ## 5. Limitations and what I would do differently
 

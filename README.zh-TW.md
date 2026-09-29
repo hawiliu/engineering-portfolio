@@ -16,12 +16,12 @@
 | **E1** | 串流影像理解 | 43 天 286 個 commit，單人 | 服役中 |
 | **E2** | 即時 AI 影像牆 | 10 個 release tag，單人 | 已交付，ARM64 離線 |
 | **E3** | 協作規劃平台 | 236 個 commit 中的 116 個，四人 | 開發中 |
-| **E4** | RAG 客服助理 | 1,461 行攝取管線 | 原型，未上線 |
+| **E4** | RAG 客服助理 | 1,461 行匯入管線 | 原型，未上線 |
 | **E5** | 負載預測管線 | notebook 轉可配置套件 | 重構完成，模型未驗證 |
 | **P1** | 自主研究平台 | 61 模組 · 30,800 行 · 612 commit | 運行中，連續 111 天 |
 | **P2** | 事件驅動交易引擎 | 164 模組 · 34,000 行 · 72 份規格 | 僅紙上交易 |
 | **P3** | 量化研究平台 | 130 模組 · 26,800 行 · 84 commit | 已部署 |
-| **P4** | 遊戲伺服器模擬 | 202 個 C# 檔 · 40,700 行 · 12 專案 | 派送完整，結算留樁 |
+| **P4** | 遊戲伺服器模擬 | 202 個 C# 檔 · 40,700 行 · 12 專案 | 分派完整，結算留 stub |
 | **P5** | 跨平台行動產品 | 36 模組 · 9,700 行 · 183 commit | 已上架，仍在架上 |
 | **P6** | C# 桌面小工具 | 4 個公開 repo · 3,700 行 | GitHub 上公開 |
 
@@ -58,11 +58,11 @@ FastAPI 加 Next.js 的全端量化研究平台，部署在帶認證的反向代
 
 ### P4 · 遊戲伺服器模擬
 
-**202 個 C# 檔 · 12 個專案共約 40,700 行 · 派送完整，結算留樁**
+**202 個 C# 檔 · 12 個專案共約 40,700 行 · 分派完整，結算留 stub**
 
-建在 .NET 10 Generic Host 上的多角色網路伺服器，12 專案 solution，依賴圖無環。三個 `BackgroundService` 角色共用同一個 DI 容器與同一個訊息層，所以 39 個型別化訊息定義只寫一次。連線層跑在裸 `Socket` 上，手寫長度前綴 framing 與串流重組，大端序讀取收在 `BinaryReader` 子類別裡。28 個 handler 以屬性掃描註冊，1,240 行的派送對應表。伺服器本體 6,351 行佔整個 solution 的 16%，工具佔 57%。
+建在 .NET 10 Generic Host 上的多角色網路伺服器，12 專案 solution，依賴圖無環。三個 `BackgroundService` 角色共用同一個 DI 容器與同一個訊息層，所以 39 個型別化訊息定義只寫一次。連線層跑在裸 `Socket` 上，手寫長度前綴 framing 與串流重組，大端序讀取收在 `BinaryReader` 子類別裡。28 個 handler 以屬性掃描註冊，1,240 行的分派對應表。伺服器本體 6,351 行佔整個 solution 的 16%，工具佔 57%。
 
-`C#` · `.NET` · generic host · 屬性式派送 · `ConcurrentDictionary`
+`C#` · `.NET` · generic host · 屬性式分派 · `ConcurrentDictionary`
 [完整文件 →](personal/04-server-emulator.zh-TW.md)
 
 ### P5 · 跨平台行動產品
@@ -118,9 +118,9 @@ React 加 Capacitor 的物理遊戲，一份程式碼出 iOS、Android 與 Web�
 
 ### E4 · RAG 客服助理
 
-**1,461 行攝取管線 · 六個模型家族、四種量化策略 · 原型，未上線**
+**1,461 行匯入管線 · 六個模型家族、四種量化策略 · 原型，未上線**
 
-針對某領域專用 SaaS 產品的檢索增強客服助理，原型與評估階段的工作。離線文件攝取管線把長篇操作手冊、常見問題與錯誤代碼參考轉成檢索導向的知識庫，含中英 OCR、表格抽取與 LLM 重組。知識庫與問題集經人工策展，模型本地託管，前面掛一層防護：共享密鑰認證、回答前分類、輸出過濾。評估涵蓋六個模型家族、四種量化策略、五個服務執行環境、兩個作業系統。
+針對某領域專用 SaaS 產品的檢索增強客服助理，原型與評估階段的工作。離線文件匯入管線把長篇操作手冊、常見問題與錯誤代碼參考轉成檢索導向的知識庫，含中英 OCR、表格抽取與 LLM 重組。知識庫與問題集經人工策展，模型本地託管，前面掛一層防護：共享密鑰認證、回答前分類、輸出過濾。評估涵蓋六個模型家族、四種量化策略、五個服務執行環境、兩個作業系統。
 
 `Python` · 本地 LLM 服務 · 文件處理 · OCR · prompt engineering · `FastAPI`
 [完整文件 →](employer/04-rag-support-assistant.zh-TW.md)
@@ -141,14 +141,14 @@ React 加 Capacitor 的物理遊戲，一份程式碼出 iOS、Android 與 Web�
 | 領域 | 出現在 |
 |---|---|
 | **語言** | **C# / .NET**(E3, P4, P6)· Python(E1, E4, E5, P1–P3)· TypeScript(E2, P3, P5)· SQL(E3, E5, P1–P3) |
-| **LLM 與 ML** | 本地 LLM 服務，vLLM / TGI / Ollama / llama.cpp(E4)· 視覺語言推論（E1）· RAG 與文件攝取（E4）· 多供應商編排、斷路器、結構化輸出（P1）· 沙箱中執行模型產生的程式碼（P3）· scikit-learn、LightGBM、random forest(P3)· RAPIDS、時序特徵工程（E5） |
+| **LLM 與 ML** | 本地 LLM 服務，vLLM / TGI / Ollama / llama.cpp(E4)· 視覺語言推論（E1）· RAG 與文件匯入（E4）· 多供應商編排、斷路器、結構化輸出（P1）· 沙箱中執行模型產生的程式碼（P3）· scikit-learn、LightGBM、random forest(P3)· RAPIDS、時序特徵工程（E5） |
 | **搜尋與統計** | bandit、取最大值回傳的 MCTS/UCT、遺傳演算法（P1）· walk-forward 驗證（P2）· 對齊換手率的負控制、t 統計量門檻（P3） |
 | **後端與 API** | FastAPI(E1, E4, P1, P3)· Fastify(E2)· ASP.NET(E3)· OpenAPI 驅動生成（E3） |
 | **即時** | Server-Sent Events(E2)· SignalR(E3)· WebRTC(E2)· 事件驅動模擬迴圈（P2）· WebSocket 行情（P3） |
 | **前端與桌面** | Vue 3(E1, E2, E3, P1)· Nuxt(E3)· Next.js、React Flow(P3)· React、Capacitor(P5)· **Avalonia、MVVM**(P6)· Windows Forms(P4, P6) |
 | **資料** | PostgreSQL(E2, E3)· **TimescaleDB**(P3)· SQL Server(E5)· SQLite 含 WAL(P1, P2)· Redis(P3)· parquet 快取（P2）· 文件資料庫（P5） |
 | **基礎設施** | Docker 與 Compose(E1, E2, E4, P3)· IIS(E3)· 帶認證的 Caddy 反向代理（P3）· ARM64 離線交付（E2）· GPU 直通與 container toolkit(E1, E4)· APScheduler(P3) |
-| **伺服器與連線處理** | 以屬性註冊的 handler 派送（P4）· 39 個型別化訊息定義（P4）· accept 迴圈、逐連線緩衝、整條 async(P4)· 行程內維運主控台（P4）· WMI 行程檢視（P6） |
+| **伺服器與連線處理** | 以屬性註冊的 handler 分派（P4）· 39 個型別化訊息定義（P4）· accept 迴圈、逐連線緩衝、整條 async(P4)· 行程內維運主控台（P4）· WMI 行程檢視（P6） |
 | **工業與協定** | Modbus TCP/RTU、OPC UA、BACnet，數千台設備輪詢（較早期的工作，見 CV） |
 | **發行與維運** | App store 送審、逐平台 IAP(P5)· MIT 授權公開發行加三語言 i18n(P6)· 10 個 release tag(E2)· build 階段的隱私掃描（E1–E3 的工具） |
 

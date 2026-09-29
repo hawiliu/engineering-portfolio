@@ -55,7 +55,7 @@ CryptoWidget/
 
 | 做法 | 用什麼做 | 解決什麼問題 |
 |---|---|---|
-| **從活著的行程取回命令列** | `SELECT CommandLine FROM Win32_Process WHERE ProcessId = ...`，經 `ManagementObjectSearcher` | 那個參數字串只存在記憶體、在一個不是你啟動的行程上、只在它還活著的期間 |
+| **從執行中的行程取回命令列** | `SELECT CommandLine FROM Win32_Process WHERE ProcessId = ...`，經 `ManagementObjectSearcher` | 那個參數字串只存在記憶體、在一個不是你啟動的行程上、只在它還在執行的期間 |
 | **以提權重新啟動** | `ProcessStartInfo` 帶 `UseShellExecute = true, Verb = "runas"` | 語系模擬器需要提權 |
 | **Fail-fast 設定檢查** | `appsettings.json` 路徑檢查，印訊息後結束 | 沒有模擬器還繼續跑，會在後面產生令人困惑的失敗 |
 | **跨平台桌面小工具** | 選 Avalonia 而不是 WPF / Windows Forms | 需求是不限 Windows；框架接著逼出了 MVVM |
@@ -71,7 +71,7 @@ CryptoWidget/
 
 `TWjpRunner` 透過語系模擬器啟動一個應用程式。問題比這句話更具體：那個應用程式自己的啟動器會去啟動目標行程，而且帶著啟動器自己生成的參數，所以等到那個行程存在時，它已經被用錯的方式啟動了。
 
-解法是讓它先起來、從活著的行程上把命令列取下來、殺掉它、再用正確的方式重新啟動：
+解法是讓它先起來、從執行中的行程上把命令列取下來、殺掉它、再用正確的方式重新啟動：
 
 ```csharp
 while (true)
@@ -110,7 +110,7 @@ private static string GetCommandLine(this Process process)
 }
 ```
 
-**程式碼很平凡，洞見不平凡，而那個洞見完全是關於接縫在哪裡。** 任何人都會寫一個行程啟動器。工作量在於注意到：那個參數字串只存在於記憶體中、在一個不是你啟動的行程上、而且只在它還活著的那段時間，以及 `System.Management` 可以在那段時間內把它讀出來。設定是一個裡面放一條路徑的 `appsettings.json`，加上一個 fail-fast 檢查，印訊息後結束，而不是在沒有模擬器的情況下繼續跑。
+**程式碼很平凡，洞見不平凡，而那個洞見完全是關於接縫在哪裡。** 任何人都會寫一個行程啟動器。工作量在於注意到：那個參數字串只存在於記憶體中、在一個不是你啟動的行程上、而且只在它還在執行的那段時間，以及 `System.Management` 可以在那段時間內把它讀出來。設定是一個裡面放一條路徑的 `appsettings.json`，加上一個 fail-fast 檢查，印訊息後結束，而不是在沒有模擬器的情況下繼續跑。
 
 **限制：** 它每秒輪詢一次行程列表、依賴一個第三方模擬器的安裝路徑，而且在構造上只能跑 Windows，因為 WMI 本來就只有 Windows 有。自 2022 年後沒有被動過，也不需要。
 

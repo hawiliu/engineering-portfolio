@@ -70,7 +70,7 @@ flowchart TB
 
 | 做法 | 用什麼做 | 解決什麼問題 |
 |---|---|---|
-| **單一訊號路徑** | `SignalEngine.backtest_series` / `live_signal`,frozen `ExecutionParams` | 兩份實作在 lookback（1020 vs 100 根）與風險比例（0.05 vs 硬編 0.10）上不一致，**實盤曝險是回測的兩倍** |
+| **單一訊號路徑** | `SignalEngine.backtest_series` / `live_signal`,frozen `ExecutionParams` | 兩份實作在 lookback（1020 vs 100 根）與風險比例（0.05 vs 寫死 0.10）上不一致，**實盤曝險是回測的兩倍** |
 | **逐根相等測試** | `live_signal(df.iloc[:k]) == backtest_series(df)[k-1]` | look-ahead 的 bug 可以單獨通過任一路徑的測試，但撐不過兩條路徑之間的相等測試 |
 | **AST 受限沙箱** | 經 `evaluate_last()` 由回測與實盤共用 | 一個讓 LLM 寫程式碼然後執行的迴圈，等於把主機的任意執行權交給遠端模型 |
 | **負控制端點** | 隨機訊號走完全相同的回測與門檻 | 沒有它，沒有任何東西能分辨一個發現與一次擲硬幣 |
@@ -95,7 +95,7 @@ flowchart TB
       研究時：`execute_factor_code_rolling(lookback=400)`，餵 1020 根
       實盤時：`test_factor_code(df)` single-pass，只餵 100 根
     EMA/RSI/ATR 的暖身值不同 → 實盤訊號與回測訊號本來就不會一樣，
-    再加上風險比例一邊 0.05、一邊硬編 0.10，實盤曝險是回測的兩倍。
+    再加上風險比例一邊 0.05、一邊寫死 0.10，實盤曝險是回測的兩倍。
 
 本模組保證：**同一份 code + 同一段資料 + 同一個 lookback → 同一個訊號**。
 """
@@ -103,10 +103,10 @@ DEFAULT_LOOKBACK = 400
 
 @dataclass(frozen=True)
 class ExecutionParams:
-    """回測與實盤共用的執行參數（單一真實來源，不要在任何地方硬編）"""
+    """回測與實盤共用的執行參數（單一真實來源，不要在任何地方寫死）"""
 ```
 
-兩個 lookback,1020 根對 100 根，讓 EMA/RSI/ATR 的暖身狀態不同，兩條路徑本來就不可能一致。再加上實盤的風險比例硬編成 `0.10`、回測用 `0.05`:**實盤曝險是回測所量測的兩倍**。`ExecutionParams` 是 frozen dataclass，正是為了讓那些數字只有一個地方。
+兩個 lookback,1020 根對 100 根，讓 EMA/RSI/ATR 的暖身狀態不同，兩條路徑本來就不可能一致。再加上實盤的風險比例寫死成 `0.10`、回測用 `0.05`:**實盤曝險是回測所量測的兩倍**。`ExecutionParams` 是 frozen dataclass，正是為了讓那些數字只有一個地方。
 
 那個保證由測試而不是約定來執行：
 
@@ -213,7 +213,7 @@ stop_atr_mult: Optional[float] = Field(2.0, description="None = 改用固定 SL/
 | 無效結果 | 寫進知識庫 | 不儲存 |
 | look-ahead 退路 | rolling 失敗時走 single-pass | 刪除；改成放棄該輪 |
 | 可信度 | 未量測 | 負控制端點，並公布運氣線 |
-| 執行參數 | 硬編在實盤監控裡 | 策略記錄上的欄位 |
+| 執行參數 | 寫死在實盤監控裡 | 策略記錄上的欄位 |
 | 資料 | 31 個標的的 OHLCV | 全 USDT-M 永續標的池，147 個裡 145 個覆蓋 ≥95% |
 
 ## 7. 限制
