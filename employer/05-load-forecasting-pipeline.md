@@ -2,20 +2,21 @@
 
 [← Portfolio index](../README.md) · [繁體中文版](05-load-forecasting-pipeline.zh-TW.md)
 
-![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white) ![RAPIDS](https://img.shields.io/badge/RAPIDS-7400FF) ![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?logo=scikitlearn&logoColor=white) ![SQL Server](https://img.shields.io/badge/SQL%20Server-CC2927) ![model unvalidated](https://img.shields.io/badge/model%20unvalidated-lightgrey)
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white) ![RAPIDS](https://img.shields.io/badge/RAPIDS-7400FF) ![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?logo=scikitlearn&logoColor=white) ![SQL Server](https://img.shields.io/badge/SQL%20Server-CC2927) ![validated offline](https://img.shields.io/badge/validated%20offline-blue)
 
-> A time-series pipeline fusing equipment sensor telemetry with historical weather to forecast next-hour load, refactored from exploratory notebooks into a configurable package with transparent GPU-to-CPU fallback. **The first model scored worse than predicting the average**, and that diagnosis is the most useful thing here.
+> A time-series pipeline fusing equipment sensor telemetry with historical weather to forecast next-hour load, refactored from exploratory notebooks into a configurable package with transparent GPU-to-CPU fallback. **The first model scored worse than predicting the average**, and that diagnosis shaped the redesign. The redesigned version was validated on historical data: against actual meter readings it is about as accurate as the existing production model. It is not deployed yet.
 
 ## 1. At a glance
 
 | Item | Detail |
 |---|---|
 | **Type** | Time-series data engineering and regression pipeline |
+| **Predicts** | Equipment power consumption (meter readings) |
 | **Role** | Sole author, built during paid employment |
 | **Period** | Roughly six weeks of recorded work |
 | **Scale** | Sensor columns in the hundreds; three notebooks and a monolithic script replaced by a six-module package in one change |
 | **Finding** | The chronological split reported real distribution shift the shuffled split would have hidden; the negative result is kept |
-| **State** | Refactor complete; **no accuracy claim is made for the current model** |
+| **State** | Validated on historical data: against actual meter readings, about as accurate as the company's existing model; **not deployed yet**. No accuracy figures are published |
 | **Source** | Employer's property; not published |
 
 ## 2. Tech stack
@@ -24,7 +25,7 @@
 |---|---|
 | **Language** | Python, executed in a virtualised Linux environment for GPU support |
 | **Data engineering** | GPU-accelerated dataframe library with a conventional dataframe fallback; as-of temporal joins; pivot and resample reshaping |
-| **Modelling** | GPU-accelerated machine learning library (random forest, linear and regularised regression) with a conventional equivalent as fallback |
+| **Modelling** | Gradient-boosted trees and a GPU-accelerated machine learning library (random forest, linear and regularised regression), each with a conventional fallback; randomised hyperparameter search; feature-importance screening before training |
 | **Data sources** | Relational operations database over a standard driver; an openly maintained historical weather dataset |
 | **Presentation** | Standard plotting libraries: actual-versus-predicted, residuals, correlation, feature importance, time-series overlays |
 | **Tooling** | Structured configuration objects, command-line entry point, dependency management |
@@ -82,18 +83,9 @@ The three highlighted stages exist because of the first model’s failure: it sc
 | **GPU with transparent fallback** | One availability check per stage selecting accelerated or conventional implementation | Without a fallback the project is unrunnable for anyone without the specific hardware, including the author elsewhere |
 | **Notebooks into a package** | Six modules along pipeline stages, dataclass configuration, CLI entry point | Notebook execution order is implicit and state invisible; a result cannot be reproduced without knowing which cells ran |
 | **Filters report what they drop** | Removal logged per gate | Silent feature removal turns a filter into a black box |
+| **Screen features, then train** | Features ranked by importance and only the top-ranked ones used; outdoor air temperature is one of the inputs | Feeding hundreds of columns into a model slows training and makes it easier to learn noise |
+| **Fix nested-parallelism oversubscription** | The hyperparameter search's worker processes and the gradient-boosting library's OpenMP threads were both set to use every core, so threads grew to the square of the core count; the outer search is pinned to one process for gradient-boosted trees | Found while validating the GPU rewrite, from unusually low GPU utilisation: the existing CPU version's settings had processes and threads competing for the same cores, with no error |
 
-## 5. Limitations and what I would do differently
+## 5. Next steps
 
-**The refactored pipeline was never run to completion.** The package exists, the notebooks driving it contain no saved output, and no metrics exist for the current modelling approach. Everything in §4 is reasoning that was implemented and not validated. This is the project's central limitation and I will not dress it up: the redesign is *untested*, and its correctness is argued rather than demonstrated.
-
-**No baseline was established.** There is no recorded persistence baseline: the score from simply predicting that the next hour equals this one. Without it, no model score can be interpreted at all. This should have been the first thing built, before any model.
-
-**No cross-validation.** A single chronological split is a single sample of the model's transfer behaviour. Rolling-origin validation over several folds would give a distribution rather than a point, and would have shown whether that failure was consistent or an artefact of one boundary.
-
-**Most of the available weather data is unused.** Humidity and radiation in particular have a direct physical relationship to cooling load and are sitting unused in the merged table.
-
-**No tests.** None. On a data pipeline where a silent transformation error produces plausible numbers, this is the gap that most deserves fixing, and it is a habit I adopted properly only on later projects.
-
-**What I would do differently, in order:** establish the persistence baseline first; build rolling-origin validation before touching features; test the transformation stages; then explore the unused weather variables. In that order, because without the first two, nothing after them can be evaluated.
-
+**Next steps, in order:** record a persistence baseline (predicting that the next hour equals this one) so model scores have a reference; move to rolling-origin validation over several folds to see whether results hold across time periods; add tests for the transformation stages, because a silent transformation error produces plausible numbers; then add the weather variables not yet used. Replacing the existing model in production comes after that.

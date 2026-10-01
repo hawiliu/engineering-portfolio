@@ -17,7 +17,7 @@ Eleven systems: five built during paid employment, six my own. Each entry below 
 | **E2** | Real-time AI video wall | 10 tagged releases, solo | Delivered, ARM64 offline |
 | **E3** | Collaborative planning platform | 116 of 236 commits, 4 contributors | In development |
 | **E4** | RAG support assistant | 1,461-line ingestion pipeline | Prototype, not shipped |
-| **E5** | Load forecasting pipeline | Notebooks to a configurable package | Refactor complete, model unvalidated |
+| **E5** | Load forecasting pipeline | Notebooks to a configurable package | Validated offline, not deployed |
 | **P1** | Autonomous research platform | 61 modules · 30.8k LOC · 612 commits | Running, 111-day streak |
 | **P2** | Event-driven trading engine | 164 modules · 34k LOC · 72 specs | Paper trading only |
 | **P3** | Quant research platform | 130 modules · 26.8k LOC · 84 commits | Deployed |
@@ -127,7 +127,7 @@ A retrieval-augmented support assistant for a domain-specific SaaS product, at t
 
 ### E5 · GPU-Accelerated Load Forecasting Pipeline
 
-**Notebooks to a configurable package · refactor complete, model unvalidated**
+**Notebooks to a configurable package · validated offline, not deployed**
 
 Equipment telemetry fused with historical weather to forecast next-hour load, refactored out of exploratory notebooks into a configurable package. The pipeline splits into five stages, loading, preparation, feature engineering, modelling and presentation, each checking GPU availability once and falling back transparently to pandas and scikit-learn on a machine without one. The target is reformulated as an hour-over-hour delta with the current value excluded from the features, splits are chronological, and automated data-quality and leakage gates sit after feature engineering.
 
