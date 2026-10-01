@@ -15,7 +15,7 @@
 | **Period** | Roughly six months |
 | **Scale** | Three independent build-time variation axes; a build matrix rather than a build |
 | **Attribution** | Tier gates, module isolation and pagination guard tests are colleagues' work; the colour scan, token completeness check and my feature's six guard tests are mine. The team's AI-assisted workflow was co-built; I was a main contributor, and the agent-driven browser checks are mine |
-| **State** | In development |
+| **State** | In production |
 | **Source** | Employer's property; not published |
 
 ## 2. Tech stack

@@ -13,9 +13,9 @@ Eleven systems: five built during paid employment, six my own. Each entry below 
 
 | # | System | Scale | State |
 |---|---|---|---|
-| **E1** | Streaming video understanding | 286 commits in 43 days, solo | In service |
+| **E1** | Streaming video understanding | 286 commits in 43 days, solo | Proof of concept, in progress |
 | **E2** | Real-time AI video wall | 10 tagged releases, solo | Delivered, ARM64 offline |
-| **E3** | Collaborative planning platform | 116 of 236 commits, 4 contributors | In development |
+| **E3** | Collaborative planning platform | 116 of 236 commits, 4 contributors | In production |
 | **E4** | RAG support assistant | 1,461-line ingestion pipeline | Prototype, not shipped |
 | **E5** | Load forecasting pipeline | Notebooks to a configurable package | Validated offline, not deployed |
 | **P1** | Autonomous research platform | 61 modules · 30.8k LOC · 612 commits | Running, 111-day streak |
@@ -91,7 +91,7 @@ Five production and R&D systems built during paid employment. Architecture and r
 
 ### E1 · Real-Time Streaming Video Understanding
 
-**286 commits in 43 days, solo · in service**
+**286 commits in 43 days, solo · proof of concept, in progress**
 
 A self-hosted platform that continuously analyses live and recorded video with a vision-language model, letting the model judge what is happening rather than enumerating anomalies in a rules engine. Classical computer vision runs alongside for what a VLM is too slow or too imprecise to do: person detection, attribute recognition, people counting, virtual tripwires and zone occupancy. One worker thread per stream handles capture, downsampling and sampling decisions, and GPU inference is serialised behind a single worker. The only per-stream configuration is a free-text scene description, so a new site needs no code.
 

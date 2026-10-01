@@ -15,7 +15,7 @@
 | **Period** | Roughly six weeks of intensive work · 286 commits in 43 days |
 | **Scale** | Four-figure backend test count; 31 specifications carrying numeric acceptance criteria |
 | **Constraint** | One GPU, many live streams, inference an order of magnitude slower than capture |
-| **State** | In service |
+| **State** | Proof of concept, in progress |
 | **Source** | Employer's property; not published |
 
 ## 2. Tech stack
