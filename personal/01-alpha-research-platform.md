@@ -29,27 +29,26 @@
 | **Resilience** | Per-provider circuit breaker (3 fails → 900 s cooldown), JSON state with `os.replace` atomic write, deterministic fallback path |
 | **Structured output** | `require_key` contracts · escape repair · balanced-brace extraction · strict mode · provider-native JSON mode |
 | **Search algorithms** | UCB + Thompson sampling (scope-prefixed arm keys) · MCTS/UCT with max-backpropagation · GA with 5 mutation operators |
-| **Storage** | SQLite × 2: results store keyed `expression × region × universe × delay`; 17-table research store |
+| **Storage** | SQLite × 2: results store keyed on a composite simulation-settings key; 17-table research store |
 | **Scheduling** | Long-running loop, each job dispatched as its own subprocess |
 | **Observability** | Per-call tracing tagged with site and role; file logging; usage accounting |
 
 ## 3. Architecture
 
 ```text
-alpha_machine/
+research/
 ├── algo/           bandit (UCB/Thompson) · MCTS/UCT ledger · GA
 ├── ...
 llm_client.py       896 lines — the single exit point for every model call
 run_miner.py        5,770 lines — the staged funnel
 loop_miner.py       2,041 lines — the long-running dispatcher
 store.py            SQLite results store (composite key)
-auth_bridge.py      session bridge
 api_server.py       FastAPI + Vue dashboard over the same stores
 ```
 
 ```mermaid
 flowchart TB
-    G["④ Goal: coverage gaps · scorecard ingestion"]
+    G["④ Goal: coverage gaps · external feedback ingestion"]
     D["③ Decision: dataset scoring · saturation · MCTS family ledger"]
     E["② Execution: staged funnel · GA · fusion · local gates · bandit"]
     S["① Data: results store · 17-table research store · state snapshots"]
@@ -112,7 +111,7 @@ The same defect existed in the MCTS track with a different constant (`mcts_c` 1.
 <details>
 <summary><b>Bandit state: scope in the key, and a guard against silent zeroing</b></summary>
 
-Arms were originally keyed `op_category::field_category`, for example `ts_rank::anl4`, pooling outcomes from every market scope. One region's structural dead end therefore suppressed sampling of the same operator elsewhere, where it worked. The key now carries the scope, and old keys are read as a prior rather than discarded:
+Arms were originally keyed `op_category::field_category`, for example `opA::fieldX`, pooling outcomes from every market scope. One region's structural dead end therefore suppressed sampling of the same operator elsewhere, where it worked. The key now carries the scope, and old keys are read as a prior rather than discarded:
 
 ```python
 def get_arm(weights: Dict[str, dict], expr: str) -> dict:
@@ -234,7 +233,7 @@ Per-generator timeouts resolve as `min`, never "caller wins", and the comment ex
 
 ```python
 # ⚠ Semantics are "this generator waits at most N seconds" = take the min, not "who takes priority":
-# refine_via_agnes defaults timeout to 240 and callers don't override it, so it flows through as
+# refine_via_model defaults timeout to 240 and callers don't override it, so it flows through as
 # ensemble(timeout=240). With "caller wins", per-generator settings would always be bypassed, silently.
 return min(base, int(_t)) if _t else base
 ```
@@ -267,7 +266,7 @@ Provider success rates over 65 days and 66,355 calls: **99.1% · 97.6% · 87.2% 
 - **Breaker state has no locking** (see the breaker section). Concurrent jobs can lose a counter update.
 - **Permanent-error classification is string matching** against provider error text. A provider rewording a message turns a loud failure back into a silent one.
 - **Local gates are unvalidated as filters.** Nothing measures how many candidates they reject that the remote validator would have accepted, so the false-negative rate of the cheapest and most-used component is unknown.
-- **Combined performance is −0.29.** The platform scorecard reached GOLD tier on breadth (70 alphas, 12 pyramid seats, a 111-day unbroken streak), and breadth is not profitability. **Any reading of this as a successful trading strategy is a reading it does not support.**
+- **Aggregate out-of-sample score is negative (−0.29).** The external platform rewards breadth of submissions, and breadth is not profitability. **Any reading of this as a successful trading strategy is a reading it does not support.**
 - **Reliability figures are windowed, not cumulative**: 15 days for breaker counts, 65 for success rates, because log retention is 14 days.
 
 In order: measure the local gates' false-negative rate, because it could invalidate the funnel's central premise; contract tests for the degradation ladder; a deliberate single-provider window; then normalise the reward scale so the exploration constant is derived rather than tuned.
@@ -276,14 +275,12 @@ In order: measure the local gates' false-negative rate, because it could invalid
 
 | Item | Detail |
 |---|---|
-| **Runtime** | Python 3.9, pinned: `requests` 2.32.3 · `pandas` 2.2.3 · `numpy` 2.0.2 |
 | **Dashboard** | `fastapi` ≥0.128 · `uvicorn` ≥0.39 · `pydantic` ≥2.13 · Vue, 5 files |
-| **Providers** | 3 × OpenAI-compatible HTTP, 1 × vendor inference service, 1 × local CLI model under existing subscription credentials |
+| **Providers** | 3 × OpenAI-compatible HTTP, 1 × vendor inference service, 1 × locally run CLI model |
 | **Resilience** | Per-provider breaker, 3 consecutive failures → 900 s cooldown, JSON state with `os.replace` atomic write; per-generator and per-synthesizer `min` timeout resolution; deterministic fallback path |
-| **Structured output** | `require_key` contracts, escape repair as a second attempt only, balanced-brace extraction, strict mode, provider-native JSON mode |
 | **Ensemble** | Four lens-prefixed generators dispatched on a thread pool, separate synthesizer with a cross-quota-pool fallback chain, optional attacker/defender/manager debate with a code-enforced retention floor of `min(2, base_count)` |
-| **Search** | UCB and Thompson sampling with scope-prefixed arm keys (`op::field`), state at `~/.wq_gui_bandit.json` chmod 600; MCTS/UCT with max-backpropagation; GA with crossover and five mutation operators including evaluation settings |
-| **Storage** | SQLite: primary store keyed expression × region × universe × delay, plus a 17-table research store (19,173 template statistics · 6,055 lessons · 5,375 insights · 3,453 hypotheses · 1,322 experiments) |
+| **Search** | UCB and Thompson sampling with scope-prefixed arm keys (`op::field`), state persisted locally with owner-only permissions; MCTS/UCT with max-backpropagation; GA with crossover and five mutation operators including evaluation settings |
+| **Storage** | SQLite: primary store keyed on a composite simulation-settings key, plus a 17-table research store (19,173 template statistics · 6,055 lessons · 5,375 insights · 3,453 hypotheses · 1,322 experiments) |
 | **Observability** | Per-call tracing tagged with site and role, which is what makes every per-provider figure above available at all |
 
 **Not in this document:** the domain itself, prompt content and the lens prefixes, provider identities, and any credential or endpoint.

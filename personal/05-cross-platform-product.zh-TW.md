@@ -28,7 +28,7 @@
 | **認證** | `@capacitor-firebase/authentication` · `firebase` · 預設匿名登入 |
 | **後端** | Firebase Firestore · Node cron 做排行榜聚合 |
 | **金流** | `@revenuecat/purchases-capacitor` · `@capgo/capacitor-admob` |
-| **設定安全** | `docs/debug/` 與 `docs/production/` 兩份 `google-services.json`，都受版控 |
+| **設定安全** | debug 與 production 各用一份平台設定檔 |
 
 ## 3. 架構
 
@@ -61,7 +61,7 @@ src/
 | **排行榜聚合改版** | Node cron 預先聚合 | 讀取從 **N×50 降到 N×1** |
 | **匿名優先的認證** | `signInAnonymously` | 不必註冊就能送分數，帳號可以之後再綁 |
 | **用 RevenueCat 而非直接接商店 API** | 一次整合、兩個商店 | 權益狀態在重裝後仍存在，而且不需要我自己的伺服器 |
-| **debug 與 production 設定分離** | 兩份受版控的 `google-services.json` | 「debug build 指向正式專案」是那種只會犯一次、然後用設計去防的錯 |
+| **debug 與 production 設定分離** | 每個環境一份平台設定檔 | 「debug build 指向正式專案」是那種只會犯一次、然後用設計去防的錯 |
 | **每個目標一個 build 指令** | 平台同步、設定注入、資產生成都串在一個指令後面 | 讓發行變成一個指令而不是一份檢查清單 |
 
 ## 5. 關鍵實作細節
@@ -96,7 +96,7 @@ private constructor() {
 
 同樣的形狀覆蓋五項因平台而異的能力：儲存、認證、購買、廣告與雲端同步。`services/` 底下是 `authService`、`cloudService`、`leaderboard`、`purchaseService` 與 storage 模組，每一個都是那道接縫。
 
-> **誠實註記：** 五項都遵守服務邊界這條規則，但確實有一個平台判斷落在遊戲元件裡面。規則是設計；那個判斷是一個沒有遵守它的地方。
+> **註記**： 五項都遵守服務邊界這條規則，但確實有一個平台判斷落在遊戲元件裡面。規則是設計；那個判斷是一個沒有遵守它的地方。
 
 </details>
 
@@ -136,7 +136,7 @@ private constructor() {
 | 儲存 | `@capacitor/preferences` |
 | 遊戲 | `matter-js`（物理）、`react`、`react-dom`、`lucide-react` |
 
-兩份 `google-services.json` 分別受版控在 `docs/debug/` 與 `docs/production/`，因為「debug build 指向正式 Firebase 專案」是那種你只會犯一次、然後開始用設計去防的錯。
+debug 與 production build 各讀一份平台設定檔，因為「debug build 指向正式 Firebase 專案」是那種你只會犯一次、然後開始用設計去防的錯。
 
 用 RevenueCat 而不是直接接 StoreKit 與 Play Billing：一次整合、兩個商店，而且權益狀態在重裝後仍然存在，不需要我自己的伺服器。這個專案最後三個 commit 是把 IAP 識別碼分平台設定，那既是常見的順序，也是 §4 結束在那裡的原因。
 
@@ -167,7 +167,7 @@ private constructor() {
 | **後端** | Firebase（Firestore、匿名認證）、Node cron 做排行榜聚合 |
 | **金流** | RevenueCat 內購、AdMob |
 | **降級** | `IStorageService` 帶原生與瀏覽器兩份實作，在一個 singleton manager 裡挑選一次；認證、購買、廣告與雲端同步用同一道接縫 |
-| **發行** | 每個目標一個 build 指令，平台同步、設定注入與資產生成都串在後面；debug 與 production 的 Firebase 設定分開受版控 |
+| **發行** | 每個目標一個 build 指令，平台同步、設定注入與資產生成都串在後面；debug 與 production 的 Firebase 設定分開 |
 
 **不在本文件內：** 遊戲設計與機制、各供應商的設定識別字與 bundle ID、商店上架文案，以及任何營收或安裝數字。
 

@@ -83,22 +83,15 @@ The two highlighted stages are the substance of the project. Everything else is 
 
 ## 5. Limitations and what I would do differently
 
-This project is the weakest in the portfolio, and the specifics are more useful than a general disclaimer.
+- **It was never measured.** No answer-quality, retrieval-precision or latency figures; the two restructuring variants were built to be compared, and the comparison was never run.
+- **The guard layer was left disabled.** Implemented, then switched off, so it is not claimed as a protection.
+- **It was never put in front of users.** No deployment and no feedback, so every judgement about the approach is theoretical.
 
-**It was never measured.** No answer quality evaluation, no retrieval precision measurement, no latency figures. The two restructuring philosophies were built specifically to be compared, and the comparison was never formally run. The most interesting question the project raised is the one it did not answer.
+**What I would do differently:**
 
-**The guard layer was left disabled.** Designed, implemented, then switched off. A protection that is off is not a protection, and describing it as one would be dishonest.
+1. **Build an evaluation set first.** Thirty real questions with known answers, rerun after every ingestion change, so each pipeline decision is tested rather than aesthetic.
+2. **Decide the restructuring question with data.** Both variants existed; only the test set was missing.
+3. **Enable the guard layer or remove it.** A half-enabled control looks like protection without being one.
+4. **Treat the corpus as the product.** Most of the value was the knowledge-base rewrite and the curated question set, and it deserved more investment than the infrastructure.
 
-**It was never put in front of users.** No deployment, no usage, no feedback. Every judgement about whether the approach works is therefore theoretical.
-
-**Engineering hygiene was poor.** One commit. A dependency manifest declaring a fraction of what the code imports. A credential in source. Dead code from a refactor. No automated tests anywhere. The contrast with the projects that followed is stark, and it is not a coincidence: it is what happens without the specification-first, test-first discipline I adopted afterwards.
-
-**What I would do differently, concretely:**
-
-1. **Build an evaluation set before building the pipeline.** Thirty real questions with known-correct answers, run after every ingestion change. Without it, every pipeline decision is aesthetic. This is the single change that would have made the project succeed or fail *knowably*.
-2. **Decide the restructuring question with data.** Both variants existed; only a test set was missing.
-3. **Enable the guard layer or remove it.** Half-enabled security is worse than none, because it looks like protection.
-4. **Treat the corpus as the product.** Most of the value created here was the knowledge-base rewrite and the curated question set: the *content*, not the code. I under-invested there relative to infrastructure, which is the common failure mode of an engineer approaching a RAG problem.
-
-**What it gave me.** Local model serving, memory-bounded model selection, grounded prompting with refusal behaviour, and document processing as a first-class problem, all of which reappear, better executed, in the projects built afterwards. The habit of asking *what did you actually measure* was formed by noticing its absence here.
-
+**What it gave me.** Local model serving, memory-bounded model selection and document processing as a first-class problem, all of which reappear in later projects, along with the habit of asking what was actually measured.

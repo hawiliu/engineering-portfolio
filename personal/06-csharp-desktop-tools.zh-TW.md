@@ -4,7 +4,7 @@
 
 ![C#](https://img.shields.io/badge/C%23-239120?logo=csharp&logoColor=white) ![Avalonia](https://img.shields.io/badge/Avalonia-8B44AC) ![.NET 10](https://img.shields.io/badge/.NET%2010-512BD4?logo=dotnet&logoColor=white) ![license: MIT](https://img.shields.io/badge/license:%20MIT-blue) ![public source](https://img.shields.io/badge/public%20source-2ea44f)
 
-> 四個公開 repository，橫跨 2019 到 2026，從 .NET Framework 上的 Windows Forms 到 .NET 10 上的 Avalonia 加 MVVM。**它們很小，而這份文件就這麼說。** 它們在這裡，是因為它們是這份作品集裡唯一能讀的原始碼，也因為有使用者的那一個只有 81 行。
+> 四個公開 repository，橫跨 2019 到 2026，從 .NET Framework 上的 Windows Forms 到 .NET 10 上的 Avalonia 加 MVVM。它們在這裡，是因為它們是這份作品集裡唯一能讀的原始碼，也因為有使用者的那一個只有 81 行。
 
 ## 1. 專案綱要
 
@@ -152,11 +152,11 @@ i18n/              Resources.Designer.cs
 
 ## 6. 這四個不是什麼
 
-它們不是系統。沒有並行問題、沒有資料管線、沒有任何分散式的東西，而且四個加起來**零個測試**。這份作品集裡所有實質的工程宣稱都來自另外五份文件。
+它們不是系統。沒有並行問題、沒有資料管線、沒有任何分散式的東西，而且四個加起來**零個測試**。這份作品集裡所有實質的工程宣稱都來自另外十份文件。
 
-它們是可讀的那一部分。那五個比較大的系統因為雇主或商業理由維持私有，所以那些文件要求讀者信任它。這四個不要求：程式碼公開、commit 歷史公開，而那個 81 行的一分鐘就能讀完。
+它們是可讀的那一部分。另外十個系統因為雇主或商業理由維持私有，所以那些文件要求讀者信任它。這四個不要求：程式碼公開、commit 歷史公開，而那個 81 行的一分鐘就能讀完。
 
-**而值得回報的結果是那個排序。** `CryptoWidget` 是 `TWjpRunner` 的三十倍大，有 MVVM 分層、三語言本地化、一個圖表視窗與一個部位監控，而除了我沒有使用者。規模、架構與完成度，最後證明跟有沒有人想要它完全不相關。被用的那個工具解決了它的使用者沒有別的辦法解決的問題；沒被用的那個，解決的問題已經有好幾個別的程式在解決了。
+**而值得回報的結果是那個排序。** `CryptoWidget` 是 `TWjpRunner` 的三十倍大，有 MVVM 分層、三語言本地化、一個圖表視窗與一個部位監控，但別人實際在用的是 `TWjpRunner`。規模、架構與完成度，最後證明跟有沒有人想要它完全不相關。被用的那個工具解決了它的使用者沒有別的辦法解決的問題；沒被用的那個，解決的問題已經有好幾個別的程式在解決了。
 
 ---
 

@@ -21,7 +21,7 @@ Eleven systems: five built during paid employment, six my own. Each entry below 
 | **P1** | Autonomous research platform | 61 modules · 30.8k LOC · 612 commits | Running, 111-day streak |
 | **P2** | Event-driven trading engine | 164 modules · 34k LOC · 72 specs | Paper trading only |
 | **P3** | Quant research platform | 130 modules · 26.8k LOC · 84 commits | Deployed |
-| **P4** | Game server emulator | 202 C# files · 40.7k LOC · 12 projects | Dispatch complete, resolution stubbed |
+| **P4** | Multi-role TCP game server | 202 C# files · 40.7k LOC · 12 projects | Dispatch complete, resolution stubbed |
 | **P5** | Cross-platform mobile product | 36 modules · 9.7k LOC · 183 commits | Shipped, live on the App Store |
 | **P6** | C# desktop tools | 4 public repos · 3.7k LOC | Public on GitHub |
 
@@ -56,7 +56,7 @@ A full-stack quant research platform in FastAPI and Next.js, deployed behind an 
 `FastAPI` · `Next.js` · `TimescaleDB` · `Redis` · `LightGBM` · `React Flow`
 [Full write-up →](personal/03-quant-platform.md)
 
-### P4 · Game Server Emulator
+### P4 · Multi-Role TCP Game Server (.NET 10)
 
 **202 C# files · ~40,700 LOC across 12 projects · dispatch complete, resolution stubbed**
 
@@ -87,7 +87,7 @@ Four public repositories spanning 2019 to 2026. CryptoWidget is a cross-platform
 
 ## Employer systems
 
-Five production and R&D systems built during paid employment. Architecture and reasoning only.
+Five systems built during paid employment. Architecture and reasoning only.
 
 ### E1 · Real-Time Streaming Video Understanding
 
@@ -100,16 +100,16 @@ A self-hosted platform that continuously analyses live and recorded video with a
 
 ### E2 · Real-Time AI Surveillance Video Wall
 
-**9 cameras · 10 tagged releases · ARM64 offline delivery**
+**10 tagged releases · ARM64 offline delivery**
 
-A large-screen operations wall driven by live data. An external AI surveillance system pushes detection events over a contract I could not change; this system validates and persists them, fans them out to every connected display in real time, and renders the nine-camera wall alongside. Distribution runs on a hand-written Server-Sent Events broadcaster with multiplexed channels and periodic keep-alive traffic; video runs RTSP to WebRTC. Delivered as offline ARM64 bundles across ten tagged releases.
+A large-screen operations wall driven by live data. An external AI surveillance system pushes detection events over a contract I could not change; this system validates and persists them, fans them out to every connected display in real time, and renders the multi-camera wall alongside. Distribution runs on a hand-written Server-Sent Events broadcaster with multiplexed channels and periodic keep-alive traffic; video runs RTSP to WebRTC. Delivered as offline ARM64 bundles across ten tagged releases.
 
 `TypeScript` · `Fastify` · `PostgreSQL` · `Server-Sent Events` · `Vue 3` · `WebRTC` · `Docker`
 [Full write-up →](employer/02-realtime-video-wall.md)
 
 ### E3 · Multi-Tenant Collaborative Planning Platform
 
-**116 of 236 commits · four contributors · in development**
+**116 of 236 commits · four contributors · in production**
 
 An enterprise task and plan product shipping from one codebase in several commercial configurations: two feature tiers, multiple brands, multiple authentication models, with real-time collaboration throughout. Three independent build-time variation axes are kept from entangling by reflection-based architecture tests rather than code review. The frontend API client is generated from OpenAPI, the real-time layer is SignalR, and the deployment paths include offline single-server IIS.
 
@@ -147,13 +147,13 @@ Searchable, so you can see whether I have touched a thing.
 | **Real-time** | Server-Sent Events (E2) · SignalR (E3) · WebRTC (E2) · event-driven simulation loops (P2) · WebSocket market data (P3) |
 | **Frontend & desktop** | Vue 3 (E1, E2, E3, P1) · Nuxt (E3) · Next.js, React Flow (P3) · React, Capacitor (P5) · **Avalonia, MVVM** (P6) · Windows Forms (P4, P6) |
 | **Data** | PostgreSQL (E2, E3) · **TimescaleDB** (P3) · SQL Server (E5) · SQLite incl. WAL (P1, P2) · Redis (P3) · parquet caching (P2) · document database (P5) |
-| **Infrastructure** | Docker and Compose (E1, E2, E4, P3) · IIS (E3) · Caddy reverse proxy with auth (P3) · offline ARM64 delivery (E2) · GPU passthrough and container toolkit (E1, E4) · APScheduler (P3) |
+| **Infrastructure** | Docker and Compose (E1, E2, E4, P3) · IIS (E3) · authenticated reverse proxy (P3) · offline ARM64 delivery (E2) · GPU passthrough and container toolkit (E1, E4) · APScheduler (P3) |
 | **Server & connection handling** | Attribute-registered handler dispatch (P4) · 39 typed message definitions (P4) · accept loop, per-connection buffers, async throughout (P4) · in-process operator console (P4) · WMI process inspection (P6) |
 | **Industrial & protocols** | Modbus TCP/RTU, OPC UA, BACnet, multi-thousand-device polling (earlier work, see CV) |
 | **Release & operations** | App Store submission, IAP per platform (P5) · MIT-licensed public release with three-language i18n (P6) · 10 tagged releases (E2) · build-time privacy enforcement (E1–E3 tooling) |
 
 ## What is not here
 
-The five employer systems were built during paid employment, and their implementations belong to my employer. Five of the six personal systems remain private, several of them because they are commercially live; read access can be arranged for hiring conversations.
+The five employer systems were built during paid employment, and their implementations belong to my employer. Five of the six personal systems remain private, one of them because it is commercially live; read access can be arranged for hiring conversations.
 
-**The exception is P6.** Those four repositories are public and can be read now. They are also the smallest things here, which their own document states plainly rather than working around.
+**The exception is P6.** Those four repositories are public and can be read now. They are also the smallest systems here.

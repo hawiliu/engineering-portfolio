@@ -21,7 +21,7 @@
 | **P1** | 自主研究平台 | 61 模組 · 30,800 行 · 612 commit | 運行中，連續 111 天 |
 | **P2** | 事件驅動交易引擎 | 164 模組 · 34,000 行 · 72 份規格 | 僅紙上交易 |
 | **P3** | 量化研究平台 | 130 模組 · 26,800 行 · 84 commit | 已部署 |
-| **P4** | 遊戲伺服器模擬 | 202 個 C# 檔 · 40,700 行 · 12 專案 | 分派完整，結算留 stub |
+| **P4** | 多角色 TCP 遊戲伺服器 | 202 個 C# 檔 · 40,700 行 · 12 專案 | 分派完整，結算留 stub |
 | **P5** | 跨平台行動產品 | 36 模組 · 9,700 行 · 183 commit | 已上架，仍在架上 |
 | **P6** | C# 桌面小工具 | 4 個公開 repo · 3,700 行 | GitHub 上公開 |
 
@@ -56,7 +56,7 @@ FastAPI 加 Next.js 的全端量化研究平台，部署在帶認證的反向代
 `FastAPI` · `Next.js` · `TimescaleDB` · `Redis` · `LightGBM` · `React Flow`
 [完整文件 →](personal/03-quant-platform.zh-TW.md)
 
-### P4 · 遊戲伺服器模擬
+### P4 · 多角色 TCP 遊戲伺服器（.NET 10）
 
 **202 個 C# 檔 · 12 個專案共約 40,700 行 · 分派完整，結算留 stub**
 
@@ -87,7 +87,7 @@ React 加 Capacitor 的物理遊戲，一份程式碼出 iOS、Android 與 Web�
 
 ## 受雇期間的系統
 
-五個在受雇期間完成的生產與研發系統，只談架構與推理。
+五個在受雇期間完成的系統，只談架構與推理。
 
 ### E1 · 即時串流影像理解
 
@@ -100,16 +100,16 @@ React 加 Capacitor 的物理遊戲，一份程式碼出 iOS、Android 與 Web�
 
 ### E2 · 即時 AI 監控影像牆
 
-**九路攝影機 · 10 個 release tag · ARM64 離線交付**
+**10 個 release tag · ARM64 離線交付**
 
-真實資料驅動的大螢幕維運牆。外部 AI 監控系統依一份我無權更動的契約推送偵測事件；本系統驗證並持久化它們、即時扇出到每一面連線中的顯示端，並在旁邊渲染九路影像牆。分發走手寫的 Server-Sent Events broadcaster，多路通道加週期性保活流量；影像走 RTSP 轉 WebRTC。以離線 ARM64 封裝交付，跨十個標記版本。
+真實資料驅動的大螢幕維運牆。外部 AI 監控系統依一份我無權更動的契約推送偵測事件；本系統驗證並持久化它們、即時扇出到每一面連線中的顯示端，並在旁邊渲染多路影像牆。分發走手寫的 Server-Sent Events broadcaster，多路通道加週期性保活流量；影像走 RTSP 轉 WebRTC。以離線 ARM64 封裝交付，跨十個標記版本。
 
 `TypeScript` · `Fastify` · `PostgreSQL` · `Server-Sent Events` · `Vue 3` · `WebRTC` · `Docker`
 [完整文件 →](employer/02-realtime-video-wall.zh-TW.md)
 
 ### E3 · 多租戶協作規劃平台
 
-**236 個 commit 中的 116 個 · 四人團隊 · 開發中**
+**236 個 commit 中的 116 個 · 四人團隊 · 已上線**
 
 企業任務與計畫產品，從單一 codebase 出貨成多種商業組態：兩種功能層級、多品牌、多種認證模式，全程支援即時協作。三條互相獨立的建置期變異軸，靠反射式架構測試而不是 code review 維持正交。前端的 API 客戶端由 OpenAPI 生成，即時層是 SignalR，部署路徑含離線單機 IIS。
 
@@ -147,13 +147,13 @@ React 加 Capacitor 的物理遊戲，一份程式碼出 iOS、Android 與 Web�
 | **即時** | Server-Sent Events(E2)· SignalR(E3)· WebRTC(E2)· 事件驅動模擬迴圈（P2）· WebSocket 行情（P3） |
 | **前端與桌面** | Vue 3(E1, E2, E3, P1)· Nuxt(E3)· Next.js、React Flow(P3)· React、Capacitor(P5)· **Avalonia、MVVM**(P6)· Windows Forms(P4, P6) |
 | **資料** | PostgreSQL(E2, E3)· **TimescaleDB**(P3)· SQL Server(E5)· SQLite 含 WAL(P1, P2)· Redis(P3)· parquet 快取（P2）· 文件資料庫（P5） |
-| **基礎設施** | Docker 與 Compose(E1, E2, E4, P3)· IIS(E3)· 帶認證的 Caddy 反向代理（P3）· ARM64 離線交付（E2）· GPU 直通與 container toolkit(E1, E4)· APScheduler(P3) |
+| **基礎設施** | Docker 與 Compose(E1, E2, E4, P3)· IIS(E3)· 帶認證的反向代理（P3）· ARM64 離線交付（E2）· GPU 直通與 container toolkit(E1, E4)· APScheduler(P3) |
 | **伺服器與連線處理** | 以屬性註冊的 handler 分派（P4）· 39 個型別化訊息定義（P4）· accept 迴圈、逐連線緩衝、整條 async(P4)· 行程內維運主控台（P4）· WMI 行程檢視（P6） |
 | **工業與協定** | Modbus TCP/RTU、OPC UA、BACnet，數千台設備輪詢（較早期的工作，見 CV） |
 | **發行與維運** | App store 送審、逐平台 IAP(P5)· MIT 授權公開發行加三語言 i18n(P6)· 10 個 release tag(E2)· build 階段的隱私掃描（E1–E3 的工具） |
 
 ## 這裡沒有什麼
 
-五個受雇期間的系統，實作屬於雇主。六個個人系統裡有五個維持私有，其中數個仍在商業運作中，面談階段可以安排讀取權限。
+五個受雇期間的系統，實作屬於雇主。六個個人系統裡有五個維持私有，其中一個是因為仍在商業運作中，面談階段可以安排讀取權限。
 
-**例外是 P6。** 那四個 repository 是公開的，現在就能讀。它們同時也是這裡最小的東西，而那份文件直說了這件事，沒有繞過它。
+**例外是 P6。** 那四個 repository 是公開的，現在就能讀。它們同時也是這裡規模最小的系統。

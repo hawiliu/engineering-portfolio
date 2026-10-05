@@ -28,7 +28,7 @@
 | **Auth** | `@capacitor-firebase/authentication` · `firebase` · anonymous sign-in by default |
 | **Backend** | Firebase Firestore · Node cron for leaderboard aggregation |
 | **Monetisation** | `@revenuecat/purchases-capacitor` · `@capgo/capacitor-admob` |
-| **Config safety** | Separate `google-services.json` under `docs/debug/` and `docs/production/`, both version-controlled |
+| **Config safety** | Separate debug and production platform config files |
 
 ## 3. Architecture
 
@@ -61,7 +61,7 @@ src/
 | **Leaderboard aggregation redesign** | Node cron pre-aggregation | Reads went from **N×50 to N×1** |
 | **Anonymous-first auth** | `signInAnonymously` | A score can be submitted without an account, and an account attached later |
 | **RevenueCat over raw store APIs** | One integration, two stores | Entitlement state survives a reinstall without a server of my own |
-| **Split debug/production Firebase configs** | Two version-controlled `google-services.json` | A debug build pointing at the production project is a mistake you make once, then design against |
+| **Split debug/production Firebase configs** | Separate platform config files per environment | A debug build pointing at the production project is a mistake you make once, then design against |
 | **Per-target build command** | Platform sync, config injection and asset generation chained behind one command | A release becomes a command rather than a checklist |
 
 ## 5. Key implementation details
@@ -96,7 +96,7 @@ private constructor() {
 
 The same shape covers the five capabilities that differ by target: storage, authentication, purchases, advertising and cloud sync. `services/` holds `authService`, `cloudService`, `leaderboard`, `purchaseService` and the storage module, each of them the seam.
 
-> **Honest note:** all five follow the service-boundary rule, but one platform check did land inside the game components. The rule is the design; that check is a place that did not follow it.
+> **Note:** all five follow the service-boundary rule, but one platform check did land inside the game components. The rule is the design; that check is a place that did not follow it.
 
 </details>
 
@@ -136,7 +136,7 @@ Auth is anonymous by default (`signInAnonymously`) so a score can be submitted w
 | Storage | `@capacitor/preferences` |
 | Game | `matter-js` (physics), `react`, `react-dom`, `lucide-react` |
 
-Two `google-services.json` files are version-controlled under `docs/debug/` and `docs/production/`, because a debug build pointing at the production Firebase project is a mistake you make exactly once and then design against.
+Debug and production builds read separate platform config files, because a debug build pointing at the production Firebase project is a mistake you make exactly once and then design against.
 
 RevenueCat rather than raw StoreKit and Play Billing: one integration, two stores, and entitlement state that survives a reinstall without a server of my own. The last three commits of the project are the IAP identifiers being separated per platform, which is both the usual order and the reason §4 ends where it does.
 
@@ -167,7 +167,7 @@ It is also the only thing in this portfolio you can download and use: [RoundEvol
 | **Backend** | Firebase (Firestore, anonymous auth), Node cron for leaderboard aggregation |
 | **Monetisation** | RevenueCat in-app purchases, AdMob |
 | **Degradation** | `IStorageService` with native and browser implementations chosen once in a singleton manager; the same seam for auth, purchases, ads and cloud sync |
-| **Release** | Per-target build command with platform sync, configuration injection and asset generation chained behind it; separate debug and production Firebase configs under version control |
+| **Release** | Per-target build command with platform sync, configuration injection and asset generation chained behind it; separate debug and production Firebase configs |
 
 **Not in this document:** game design and mechanics, vendor configuration identifiers and bundle IDs, store listing copy, and any revenue or install figures.
 

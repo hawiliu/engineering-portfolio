@@ -13,7 +13,7 @@
 | **Type** | Real-time operations display, event ingestion and fan-out, live video wall |
 | **Role** | Sole author, built during paid employment |
 | **Period** | Roughly ten weeks · 10 tagged releases |
-| **Scale** | Nine cameras; one process serving every connected display |
+| **Scale** | Multiple cameras; one process serving every connected display |
 | **Constraint** | An upstream contract with exactly one upload URL; a target with no registry access |
 | **State** | Delivered as offline ARM64 bundles |
 | **Source** | Employer's property; not published |
@@ -108,8 +108,6 @@ flowchart LR
 ## 5. Limitations and what I would do differently
 
 **Broadcast is single-process.** Every display is served by one process holding every connection. This is correct for a venue-scale deployment and wrong for anything larger; horizontal scale needs a shared distribution layer that does not exist here.
-
-**No authentication on ingest beyond network placement.** Appropriate for an isolated deployment, insufficient for anything else, and the first thing I would change if the topology opened up.
 
 **Query results are deliberately not persisted.** They are session-scoped and vanish on reload. That was the right call for a wall display and it does mean there is no record of what was asked. If this became an operator tool rather than a display, it would need to change.
 

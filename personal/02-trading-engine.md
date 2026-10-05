@@ -53,9 +53,9 @@ crypto_strategy/
 |---|---|---|
 | **Next-bar-open fill** | Signal on bar T close → fill at T+1 open + adverse slippage | Filling at the signal bar's close assumes an order placed in the past |
 | **Pessimistic stop-first convention** | Intra-bar range check, stop assumed first on wick-through | Assuming the target hit first converts losses into wins on exactly the hardest bars to reconstruct |
-| **Liquidity-tiered slippage with linear impact** | Rank ≤10 vs >10 tiers, `+ impact_per_10k × (notional / 10_000)` | A flat slippage constant is the single most effective way to make a high-turnover strategy look viable |
+| **Liquidity-tiered slippage with linear impact** | Two tiers by liquidity rank, `+ impact_per_10k × (notional / 10_000)` | A flat slippage constant is the single most effective way to make a high-turnover strategy look viable |
 | **Walk-forward with frozen parameters** | Sweep on train slice only, apply frozen to unseen test, concatenate test slices | The sweep is what produces overfitting, so it must never see the test data |
-| **Same-category signal collapse** | `max + 0.15 × (N-1)` capped at `+0.5` | Near-correlated detectors summed together count the same evidence repeatedly and manufacture confidence |
+| **Same-category signal collapse** | Category max plus a bonus that grows with agreement count, capped | Near-correlated detectors summed together count the same evidence repeatedly and manufacture confidence |
 | **Hard regime drop** | Long signal in TRENDING_DOWN never fires, regardless of ensemble strength | A penalty is negotiable against a strong enough ensemble; this one should not be |
 | **Rules citing their own provenance** | Code comments cite `signal_catalog.md` clause numbers and `review.md` decision IDs | 72 specification documents are only useful if the code says which clause it implements |
 | **v1/v2 coexistence** | Arbitrator ignores signals without a v2 strength | Migrating 126 signal modules on a flag day is not a migration, it is an outage |
@@ -91,11 +91,11 @@ Slippage is not a constant. It is tiered by liquidity and grows with size:
 
 ```python
 def _slippage_for(self, symbol: str, notional: float) -> float:
-    rank = self.ranks.get(symbol, 25)
-    if rank <= 10:
-        base, impact_per_10k = self.slip_top10, self.impact_top10
+    rank = self.ranks.get(symbol, self.default_rank)  # default lands in the lower tier
+    if rank <= self.top_tier_cutoff:
+        base, impact_per_10k = self.slip_top_tier, self.impact_top_tier
     else:
-        base, impact_per_10k = self.slip_top50, self.impact_top50
+        base, impact_per_10k = self.slip_lower_tier, self.impact_lower_tier
     # Linear impact: notional / 10_000 → number of $10k units → impact bps.
     return base + impact_per_10k * (notional / 10_000.0)
 
@@ -108,7 +108,7 @@ def _apply_slippage(self, price, side, symbol, is_entry, notional):
     return price * (1 - slip) if side is Side.LONG else price * (1 + slip)
 ```
 
-**A flat slippage constant is the single most effective way to make a high-turnover strategy look viable**, because the cost of trading stops scaling with how much you trade. Linear impact per $10k of notional makes size expensive, and an unranked symbol defaults to rank 25, which puts it in the worse tier rather than the better one. Defaults err on the pessimistic side on purpose.
+**A flat slippage constant is the single most effective way to make a high-turnover strategy look viable**, because the cost of trading stops scaling with how much you trade. Linear impact per $10k of notional makes size expensive, and an unranked symbol defaults into the worse tier rather than the better one. Defaults err on the pessimistic side on purpose.
 
 </details>
 
@@ -144,13 +144,13 @@ The confluence arbitrator is 585 lines implementing a numbered section of a writ
 ```python
 """v2 Confluence Arbitrator — implementation of signal_catalog.md §3.5.
 
-- §3.3 rule (a) — Hard-opposite drop: opposing-direction signals at strength
-  ≥ 3.0 on the same bar drop both sides.
-- §3.3 rule (b) — Same-category collapse: within one category, take max +
-  0.15 × (N-1) capped at +0.5. Avoids double-counting near-correlated
-  detectors (review.md P0 #3).
-- §3.3 rule (c) — Cross-category boost: ≥3 different categories agreeing
-  contribute +0.5 per extra category (cap +1.0).
+- §3.3 rule (a) — Hard-opposite drop: strong opposing-direction signals on
+  the same bar drop both sides.
+- §3.3 rule (b) — Same-category collapse: within one category, take the max
+  plus a bonus that grows with agreement count, capped. Avoids
+  double-counting near-correlated detectors (review.md P0 #3).
+- §3.3 rule (c) — Cross-category boost: agreement across enough distinct
+  categories adds a capped per-category bonus.
 - §3.3 rule (d) — Filter signals only have *negative* effect. Never positive.
 - §3.5 step 6 — **HARD DROP on regime against** (review.md P0 #2): a long
   signal in TRENDING_DOWN regime never fires, regardless of ensemble strength.
@@ -178,8 +178,6 @@ The arbitrator also ignores any signal without a v2 strength, which let the v1 a
 | `execution/` | 4 | Simulator, exit policy (542 lines) |
 | `backtest/` | 4 | Walk-forward, metrics, runner |
 | `risk`, `data`, `reports` | 12 | Sizing, ccxt fetch with parquet cache, output |
-
-**126 of 164 modules are detectors and everything else is the machinery that stops those detectors from fooling me.** That ratio is the project.
 
 Data is fetched through `ccxt` and cached as parquet via `pyarrow`, so a re-run does not re-download and two runs over the same window are comparing the same bars.
 
@@ -212,13 +210,8 @@ Then two months with no commits, and what restarted the project was pointing the
 
 | Item | Detail |
 |---|---|
-| **Runtime** | Python, `ccxt` ≥4.2 · `pandas` ≥2.1 · `numpy` ≥1.26 · `pyarrow` ≥15 (parquet cache) · `scipy` ≥1.11 · `PyYAML` · `matplotlib` |
-| **Execution model** | Next-bar-open fill, adverse slippage, taker fees both legs, pessimistic stop-first convention on wick-through bars, liquidity-tiered slippage with linear impact per $10k notional |
-| **Validation** | Rolling walk-forward with parameter sweep confined to the train slice and frozen params on test; concatenated test slices as the record |
 | **Signal layer** | 126 detector modules, v2 signals carrying a catalogue ID, 1–5 strength, factors, zone and regime fit |
 | **Arbitration** | Six numbered rules from a written catalogue: hard-opposite drop, same-category collapse, cross-category boost, negative-only filters, strength modifiers, hard regime drop |
-| **Forward mode** | ~3,300-line paper-trading runner with a virtual portfolio, market data only |
-| **Specification** | 72 documents, ~29,750 lines, with code citing clause numbers and review decisions |
 
 **Not in this document:** the strategies themselves, detector logic, thresholds and tuning constants.
 

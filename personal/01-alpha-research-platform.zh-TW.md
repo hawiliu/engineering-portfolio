@@ -29,27 +29,26 @@
 | **韌性** | 逐供應商斷路器（3 次失敗 → 900 秒冷卻）、JSON 狀態以 `os.replace` 原子寫入、確定性備援路徑 |
 | **結構化輸出** | `require_key` 契約 · 逃逸修復 · 平衡括號抽取 · strict 模式 · 供應商原生 JSON 模式 |
 | **搜尋演算法** | UCB + Thompson 取樣（arm key 帶 scope 前綴）· 取最大值回傳的 MCTS/UCT · 含五種突變運算子的 GA |
-| **儲存** | SQLite × 2：結果庫以 `expression × region × universe × delay` 為複合鍵；17 張表的研究庫 |
+| **儲存** | SQLite × 2：結果庫以模擬設定組成的複合鍵為主鍵；17 張表的研究庫 |
 | **排程** | 常駐迴圈，每個 job 派成自己的子行程 |
 | **觀測** | 逐次呼叫追蹤（標記站點與角色）、檔案日誌、用量記帳 |
 
 ## 3. 架構
 
 ```text
-alpha_machine/
+research/
 ├── algo/           bandit（UCB/Thompson）· MCTS/UCT 家族帳本 · GA
 ├── ...
 llm_client.py       896 行 — 所有模型呼叫的唯一出口
 run_miner.py        5,770 行 — 分段漏斗
 loop_miner.py       2,041 行 — 常駐分派器
 store.py            SQLite 結果庫（複合主鍵）
-auth_bridge.py      session 橋接
 api_server.py       FastAPI + Vue 儀表板，讀同一組資料庫
 ```
 
 ```mermaid
 flowchart TB
-    G["④ 目標層: 覆蓋缺口 · scorecard 擷取"]
+    G["④ 目標層: 覆蓋缺口 · 外部回饋擷取"]
     D["③ 決策層: 資料集評分 · 飽和 · MCTS 家族帳本"]
     E["② 執行層: 分段漏斗 · GA · 融合 · 本地閘門 · bandit"]
     S["① 資料層: 結果庫 · 17 表研究庫 · 狀態快照"]
@@ -111,7 +110,7 @@ def score_ucb(arm: dict, total_trials: int, explore_scale: float = 1.0) -> float
 <details>
 <summary><b>Bandit 狀態：把 scope 放進 key，以及一道防止無聲歸零的閘</b></summary>
 
-Arm 原本的 key 是 `op_category::field_category`，例如 `ts_rank::anl4`，把所有市場範圍的結果混在一起算。於是某個 region 的結構性死路，會壓低同一個 operator 在其他 region 的取樣，即使它在那邊是有效的。現在 key 帶著 scope，而舊 key 被當成先驗讀取而不是丟棄：
+Arm 原本的 key 是 `op_category::field_category`，例如 `opA::fieldX`，把所有市場範圍的結果混在一起算。於是某個 region 的結構性死路，會壓低同一個 operator 在其他 region 的取樣，即使它在那邊是有效的。現在 key 帶著 scope，而舊 key 被當成先驗讀取而不是丟棄：
 
 ```python
 def get_arm(weights: Dict[str, dict], expr: str) -> dict:
@@ -230,7 +229,7 @@ s = re.sub(r",\s*([}\]])", r"\1", s)       # ③ 尾逗號
 
 ```python
 # ⚠ 語意是「這個 generator 最多等 N 秒」＝取 min，不是「優先用誰」：
-# refine_via_agnes 的 timeout 預設 240 且呼叫端沒覆寫 → 會一路傳成 ensemble(timeout=240)，
+# refine_via_model 的 timeout 預設 240 且呼叫端沒覆寫 → 會一路傳成 ensemble(timeout=240)，
 # 若寫成「呼叫端優先」，per-generator 設定就永遠被繞過、靜默失效。
 return min(base, int(_t)) if _t else base
 ```
@@ -263,7 +262,7 @@ Generator 並行跑但整批要等所有人，所以批次延遲等於最慢的�
 - **斷路器狀態沒有鎖**（見斷路器那一段）並行 job 可能遺失一次計數更新。
 - **永久性錯誤的分類是對供應商錯誤訊息做字串比對**。供應商改寫一句錯誤訊息，就把一個會吵的失敗變回安靜的失敗。
 - **本地閘門作為過濾器從未被驗證。** 沒有任何量測告訴我它們擋掉的候選裡有多少是遠端驗證器本來會通過的，所以系統裡最便宜、用得最兇的元件，它的假陰性率是未知的。
-- **Combined performance 是 −0.29。** 平台 scorecard 達到 GOLD 靠的是廣度（70 個 alpha、12 個金字塔席位、連續 111 天不中斷）而廣度不是獲利能力。**任何把這讀成一套成功交易策略的讀法，都不是這份文件能佐證的。**
+- **整體樣本外分數為負（−0.29）。** 外部平台獎勵的是提交的廣度，而廣度不是獲利能力。**任何把這讀成一套成功交易策略的讀法，都不是這份文件能佐證的。**
 - **可靠度數字是區間值而非累計**：斷路器計數 15 天、成功率 65 天，因為 log 只留 14 天。
 
 依序：量本地閘門的假陰性率，因為它可能推翻漏斗的核心前提；降級階梯的契約測試；刻意開一段只有單一供應商的期間；然後把獎勵尺度正規化，讓那個探索常數是推導出來的而不是調出來的。
@@ -272,14 +271,12 @@ Generator 並行跑但整批要等所有人，所以批次延遲等於最慢的�
 
 | 項目 | 內容 |
 |---|---|
-| **執行環境** | Python 3.9，版本鎖定：`requests` 2.32.3 · `pandas` 2.2.3 · `numpy` 2.0.2 |
 | **儀表板** | `fastapi` ≥0.128 · `uvicorn` ≥0.39 · `pydantic` ≥2.13 · Vue,5 個檔案 |
-| **供應商** | 3 個 OpenAI 相容 HTTP、1 個廠商推論服務、1 個在既有訂閱憑證下本機執行的 CLI 模型 |
+| **供應商** | 3 個 OpenAI 相容 HTTP、1 個廠商推論服務、1 個本機執行的 CLI 模型 |
 | **韌性** | 逐供應商斷路器，連續 3 次失敗 → 900 秒冷卻，JSON 狀態以 `os.replace` 原子寫入；逐 generator 與逐 synthesizer 的 `min` timeout 解析；確定性備援路徑 |
-| **結構化輸出** | `require_key` 契約、逃逸修復只當第二次嘗試、平衡括號抽取、strict 模式、供應商原生 JSON 模式 |
 | **Ensemble** | 四個帶視角前綴的 generator 以 thread pool 分派、獨立 synthesizer 帶跨配額池的備援鏈、可選的攻擊/辯護/裁決辯論並在程式碼裡強制 `min(2, base 條數)` 的保底 |
-| **搜尋** | UCB 與 Thompson 取樣，arm key 帶 scope 前綴（`op::field`）狀態在 `~/.wq_gui_bandit.json`(chmod 600)；取最大值回傳的 MCTS/UCT；含交叉與五種突變運算子的 GA，其中一種突變的是評估設定 |
-| **儲存** | SQLite：主結果庫以 expression × region × universe × delay 為複合鍵，另有 17 張表的研究庫（19,173 筆模板統計 · 6,055 條教訓 · 5,375 條洞察 · 3,453 個假說 · 1,322 次實驗） |
+| **搜尋** | UCB 與 Thompson 取樣，arm key 帶 scope 前綴（`op::field`），狀態存在本機且只有擁有者可讀寫；取最大值回傳的 MCTS/UCT；含交叉與五種突變運算子的 GA，其中一種突變的是評估設定 |
+| **儲存** | SQLite：主結果庫以模擬設定組成的複合鍵為主鍵，另有 17 張表的研究庫（19,173 筆模板統計 · 6,055 條教訓 · 5,375 條洞察 · 3,453 個假說 · 1,322 次實驗） |
 | **觀測** | 逐次呼叫追蹤並標記站點與角色，上面每一個分供應商的數字都來自它 |
 
 **不在本文件內：** 領域本身、prompt 內容與那些視角前綴、供應商身分，以及任何憑證或端點。

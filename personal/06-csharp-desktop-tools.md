@@ -4,7 +4,7 @@
 
 ![C#](https://img.shields.io/badge/C%23-239120?logo=csharp&logoColor=white) ![Avalonia](https://img.shields.io/badge/Avalonia-8B44AC) ![.NET 10](https://img.shields.io/badge/.NET%2010-512BD4?logo=dotnet&logoColor=white) ![license: MIT](https://img.shields.io/badge/license:%20MIT-blue) ![public source](https://img.shields.io/badge/public%20source-2ea44f)
 
-> Four public repositories spanning 2019 to 2026, from Windows Forms on .NET Framework to Avalonia with MVVM on .NET 10. **These are small and this document says so.** They are here because they are the only readable source in this portfolio, and because the one with users is the one with 81 lines in it.
+> Four public repositories spanning 2019 to 2026, from Windows Forms on .NET Framework to Avalonia with MVVM on .NET 10. They are here because they are the only readable source in this portfolio, and because the one with users is the one with 81 lines in it.
 
 ## 1. At a glance
 
@@ -152,11 +152,11 @@ A value converter like `BoolToGridLengthConverter` is a small thing that only ex
 
 ## 6. What these four are not
 
-They are not systems. No concurrency problem, no data pipeline, nothing distributed, and **zero tests between them**. Every substantive engineering claim in this portfolio comes from the other five documents.
+They are not systems. No concurrency problem, no data pipeline, nothing distributed, and **zero tests between them**. Every substantive engineering claim in this portfolio comes from the other ten write-ups.
 
-What they are is the readable part. The five larger systems are private for employer or commercial reasons, so those documents ask to be taken on trust. These do not: the code is public, the commit history is public, and the 81-line one can be read in a minute.
+What they are is the readable part. The other ten systems are private for employer or commercial reasons, so those documents ask to be taken on trust. These do not: the code is public, the commit history is public, and the 81-line one can be read in a minute.
 
-**And the result worth reporting is the ranking.** `CryptoWidget` is thirty times the size of `TWjpRunner`, has MVVM layering, three-language localisation, a chart window and a position monitor, and has no users but me. Size, architecture and polish turned out to be uncorrelated with whether anyone wanted the thing. The tool that got used solves a problem its user could not solve another way; the one that did not solves a problem several other programs already solve.
+**And the result worth reporting is the ranking.** `CryptoWidget` is thirty times the size of `TWjpRunner`, has MVVM layering, three-language localisation, a chart window and a position monitor, yet `TWjpRunner` is the one other people use. Size, architecture and polish turned out to be uncorrelated with whether anyone wanted the thing. The tool that got used solves a problem its user could not solve another way; the one that did not solves a problem several other programs already solve.
 
 ---
 

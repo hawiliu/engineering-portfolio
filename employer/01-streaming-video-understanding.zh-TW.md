@@ -2,7 +2,7 @@
 
 [← 作品集索引](../README.zh-TW.md) · [English version](01-streaming-video-understanding.md)
 
-![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white) ![Vue 3](https://img.shields.io/badge/Vue%203-4FC08D?logo=vuedotjs&logoColor=white) ![OpenVINO](https://img.shields.io/badge/OpenVINO-0071C5) ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white) ![status: in service](https://img.shields.io/badge/status:%20in%20service-2ea44f)
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white) ![Vue 3](https://img.shields.io/badge/Vue%203-4FC08D?logo=vuedotjs&logoColor=white) ![OpenVINO](https://img.shields.io/badge/OpenVINO-0071C5) ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white) ![status: PoC in progress](https://img.shields.io/badge/status:%20PoC%20in%20progress-yellow)
 
 > 自架平台，以視覺語言模型持續分析即時與錄製影像，讓模型自己判斷現場在發生什麼、危不危險，並讓傳統電腦視覺在旁邊並行處理 VLM 做不夠快的任務。受雇期間的工作：只談架構與推理、只給相對量測、工具以類別稱之。
 
@@ -110,8 +110,6 @@ flowchart TB
 | **丟棄次數暴露在健康端點** | 佇列策略上的量測 | 一個悄悄丟掉多數分析的系統，不把丟棄弄成可見就跟跟得上的系統一模一樣 |
 
 ## 5. 限制，以及我會怎麼改
-
-**系統沒有身分驗證。** 它的設定範圍是可信網路。這件事被記錄而非隱藏，但它是真實的限制，也是我在任何超出該假設的部署之前第一件要處理的事。
 
 **結構上就是單節點。** 排程設計假設一個行程裡有一張 GPU。擴展到多台機器不是改設定，而是需要一個不同的排程器，以及一套目前不存在的分發機制。
 

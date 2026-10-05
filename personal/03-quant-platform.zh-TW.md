@@ -15,7 +15,7 @@
 | **期間** | 2026-02（42 個 commit）· 2026-08（38 個 commit，審查後的修補） |
 | **規模** | 87 個 Python + 43 個 TypeScript 模組 · 約 26,800 行 · 12 份設計文件（約 2,400 行） |
 | **關鍵結果** | 舊的成功門檻讓 **60 次裡 1 次**純隨機訊號通過；換掉後 **0/60** |
-| **狀態** | 部署在 Caddy 後帶 basic auth · 15 分鐘 APScheduler 週期 · 147 標的中 145 個覆蓋 ≥95% |
+| **狀態** | 部署在需驗證的反向代理後 · 15 分鐘 APScheduler 週期 · 147 標的中 145 個覆蓋 ≥95% |
 | **原始碼** | 私有 · 面談階段可安排讀取權限 |
 
 ## 2. 技術棧
@@ -29,7 +29,7 @@
 | **研究安全** | 給模型寫的程式碼用的 AST 受限沙箱 · 滾動視窗訊號評估 · 對齊換手率的負控制 |
 | **排程** | `apscheduler`,15 分鐘週期 |
 | **前端** | Next.js · TypeScript · React Flow（節點圖編輯器）· lightweight-charts · ECharts |
-| **部署** | Docker Compose · 帶 basic auth 的 Caddy 反向代理 · screen 管理的服務 |
+| **部署** | Docker Compose · 需驗證的反向代理 |
 
 ## 3. 架構
 
@@ -231,15 +231,9 @@ stop_atr_mult: Optional[float] = Field(2.0, description="None = 改用固定 SL/
 
 | 項目 | 內容 |
 |---|---|
-| **後端** | Python、FastAPI、SQLAlchemy 2.0 async、Alembic、`pydantic-settings`、`tenacity`、`httpx` |
-| **資料** | TimescaleDB、Redis（`redis[hiredis]`）、`ccxt` ≥4.4 REST 與 WebSocket、`pgvector` |
 | **研究** | 給模型寫的因子程式碼用的 AST 受限沙箱、滾動視窗訊號評估、以幾何切換點與換手率對齊的負控制 |
-| **ML** | `scikit-learn` ≥1.6、`lightgbm` ≥4.5（Top-20 特徵篩選與迴歸）、`joblib` |
 | **分析** | `pandas` ≥2.2、`numpy` ≥2.0、`pandas-ta`、`mplfinance`、`matplotlib` |
-| **排程** | `apscheduler`,15 分鐘週期 |
-| **前端** | Next.js、TypeScript、React Flow（節點圖編輯器）、lightweight-charts、ECharts |
-| **部署** | Docker Compose、帶 basic auth 的 Caddy 反向代理、screen 管理的服務；`/derivatives/coverage` 回報逐標的完整度（147 個裡 145 個 ≥95%、中位數 99.9%） |
-| **維運細節** | 部署腳本從不使用模糊的行程比對，因為這台主機跑著好幾個不相關的常駐服務，一個萬用字元會殺掉它們 |
+| **部署** | Docker Compose，置於需驗證的反向代理後；一個覆蓋率報告端點追蹤逐標的完整度（147 個裡 145 個 ≥95%、中位數 99.9%） |
 
 **不在本文件內：** 因子定義、策略本身、挖掘 prompt 內容、schema 細節、API 路由、調校常數，以及部署的網址。
 

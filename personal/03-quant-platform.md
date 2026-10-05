@@ -15,7 +15,7 @@
 | **Period** | 2026-02 (42 commits) · 2026-08 (38 commits, post-audit repairs) |
 | **Size** | 87 Python + 43 TypeScript modules · ~26,800 LOC · 12 design docs (~2,400 lines) |
 | **Headline result** | Old success gate passed **1 in 60** pure random signals; replacement gate **0 in 60** |
-| **State** | Deployed behind Caddy with basic auth · 15-minute APScheduler cycle · 145/147 symbols at ≥95% coverage |
+| **State** | Deployed behind an authenticated reverse proxy · 15-minute APScheduler cycle · 145/147 symbols at ≥95% coverage |
 | **Source** | Private · read access can be arranged for hiring conversations |
 
 ## 2. Tech stack
@@ -29,7 +29,7 @@
 | **Research safety** | AST-restricted sandbox for model-written code · rolling-window signal evaluation · negative control with turnover matching |
 | **Scheduling** | `apscheduler`, 15-minute cycle |
 | **Frontend** | Next.js · TypeScript · React Flow (node-graph editor) · lightweight-charts · ECharts |
-| **Deployment** | Docker Compose · Caddy reverse proxy with basic auth · screen-managed services |
+| **Deployment** | Docker Compose · an authenticated reverse proxy |
 
 ## 3. Architecture
 
@@ -231,15 +231,9 @@ In order: train/test split with one-shot OOS validation; a trial counter with DS
 
 | Item | Detail |
 |---|---|
-| **Backend** | Python, FastAPI, SQLAlchemy 2.0 async, Alembic, `pydantic-settings`, `tenacity`, `httpx` |
-| **Data** | TimescaleDB, Redis (`redis[hiredis]`), `ccxt` ≥4.4 REST and WebSocket, `pgvector` |
 | **Research** | AST-restricted sandbox for model-written factor code, rolling-window signal evaluation, negative control with geometric switch points and turnover matching |
-| **ML** | `scikit-learn` ≥1.6, `lightgbm` ≥4.5 (top-20 feature selection and regression), `joblib` |
 | **Analysis** | `pandas` ≥2.2, `numpy` ≥2.0, `pandas-ta`, `mplfinance`, `matplotlib` |
-| **Scheduling** | `apscheduler`, 15-minute cycle |
-| **Frontend** | Next.js, TypeScript, React Flow (node-graph editor), lightweight-charts, ECharts |
-| **Deployment** | Docker Compose, Caddy reverse proxy with basic auth, screen-managed services; `/derivatives/coverage` reports per-symbol completeness (145/147 at ≥95%, median 99.9%) |
-| **Ops detail** | The deploy script never uses broad process matching, because the host runs several unrelated long-lived services and a wildcard would kill them |
+| **Deployment** | Docker Compose behind an authenticated reverse proxy; a coverage report endpoint tracks per-symbol completeness (145/147 at ≥95%, median 99.9%) |
 
 **Not in this document:** factor definitions, the strategies, mining prompt content, schema details, API routes, tuning constants, and the deployed URL.
 

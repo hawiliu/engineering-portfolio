@@ -53,9 +53,9 @@ crypto_strategy/
 |---|---|---|
 | **次根開盤成交** | 訊號在 T 根收盤 → T+1 開盤價加逆向滑價成交 | 用訊號那根的收盤價成交，等於假設一張在過去就下好的單 |
 | **先打停損的悲觀約定** | K 棒內區間檢查，影線雙穿時假設先打停損 | 假設先打停利，會在最難重建的那些 K 棒上把虧損變成獲利 |
-| **依流動性分級且帶線性衝擊的滑價** | rank ≤10 與 >10 兩級，`+ impact_per_10k × (notional / 10_000)` | 固定滑價常數是讓高換手策略看起來可行的最有效單一手段 |
+| **依流動性分級且帶線性衝擊的滑價** | 依流動性排名分兩級，`+ impact_per_10k × (notional / 10_000)` | 固定滑價常數是讓高換手策略看起來可行的最有效單一手段 |
 | **凍結參數的 walk-forward** | 只在訓練切片掃描，凍結後套上未見過的測試切片，再串接 | 參數掃描正是產生過擬合的東西，所以它絕不能看到測試資料 |
-| **同類別訊號收斂** | `max + 0.15 × (N-1)`，上限 `+0.5` | 高度相關的偵測器相加，等於把同一份證據重複計算、製造信心 |
+| **同類別訊號收斂** | 取類別內最大值，再加一個隨同意數成長、有上限的加成 | 高度相關的偵測器相加，等於把同一份證據重複計算、製造信心 |
 | **市況硬性排除** | 多單訊號在 TRENDING_DOWN 永不觸發，不論整體強度 | 懲罰可以被足夠強的 ensemble 買掉，而這一條不應該被買掉 |
 | **自帶出處的規則** | 程式碼註解引用 `signal_catalog.md` 條款編號與 `review.md` 決定 ID | 72 份規格文件只有在程式碼說得出它實作哪一條時才有用 |
 | **v1/v2 並存** | Arbitrator 忽略沒有 v2 強度的訊號 | 對 126 個訊號模組一次全部切換，那不是遷移，是停機 |
@@ -91,11 +91,11 @@ crypto_strategy/
 
 ```python
 def _slippage_for(self, symbol: str, notional: float) -> float:
-    rank = self.ranks.get(symbol, 25)
-    if rank <= 10:
-        base, impact_per_10k = self.slip_top10, self.impact_top10
+    rank = self.ranks.get(symbol, self.default_rank)  # default lands in the lower tier
+    if rank <= self.top_tier_cutoff:
+        base, impact_per_10k = self.slip_top_tier, self.impact_top_tier
     else:
-        base, impact_per_10k = self.slip_top50, self.impact_top50
+        base, impact_per_10k = self.slip_lower_tier, self.impact_lower_tier
     # Linear impact: notional / 10_000 → number of $10k units → impact bps.
     return base + impact_per_10k * (notional / 10_000.0)
 
@@ -108,7 +108,7 @@ def _apply_slippage(self, price, side, symbol, is_entry, notional):
     return price * (1 - slip) if side is Side.LONG else price * (1 + slip)
 ```
 
-**一個固定的滑價常數，是讓高換手策略看起來可行的最有效單一手段**，因為交易成本不再隨著你交易多少而放大。每一萬美元名目金額的線性衝擊讓「做大」變貴，而沒有排名的標的預設 rank 25，也就是落進比較差的那一級而不是比較好的那一級。**預設值刻意指向悲觀那一側。**
+**一個固定的滑價常數，是讓高換手策略看起來可行的最有效單一手段**，因為交易成本不再隨著你交易多少而放大。每一萬美元名目金額的線性衝擊讓「做大」變貴，而沒有排名的標的預設落進比較差的那一級，而不是比較好的那一級。**預設值刻意指向悲觀那一側。**
 
 </details>
 
@@ -144,13 +144,13 @@ Confluence arbitrator 是 585 行，實作一份書面訊號目錄裡的一個�
 ```python
 """v2 Confluence Arbitrator — implementation of signal_catalog.md §3.5.
 
-- §3.3 rule (a) — Hard-opposite drop: opposing-direction signals at strength
-  ≥ 3.0 on the same bar drop both sides.
-- §3.3 rule (b) — Same-category collapse: within one category, take max +
-  0.15 × (N-1) capped at +0.5. Avoids double-counting near-correlated
-  detectors (review.md P0 #3).
-- §3.3 rule (c) — Cross-category boost: ≥3 different categories agreeing
-  contribute +0.5 per extra category (cap +1.0).
+- §3.3 rule (a) — Hard-opposite drop: strong opposing-direction signals on
+  the same bar drop both sides.
+- §3.3 rule (b) — Same-category collapse: within one category, take the max
+  plus a bonus that grows with agreement count, capped. Avoids
+  double-counting near-correlated detectors (review.md P0 #3).
+- §3.3 rule (c) — Cross-category boost: agreement across enough distinct
+  categories adds a capped per-category bonus.
 - §3.3 rule (d) — Filter signals only have *negative* effect. Never positive.
 - §3.5 step 6 — **HARD DROP on regime against** (review.md P0 #2): a long
   signal in TRENDING_DOWN regime never fires, regardless of ensemble strength.
@@ -178,8 +178,6 @@ Arbitrator 也會忽略任何沒有 v2 強度的訊號，這讓 v1 與 v2 兩套
 | `execution/` | 4 | 模擬器、出場策略（542 行） |
 | `backtest/` | 4 | walk-forward、指標、runner |
 | `risk`、`data`、`reports` | 12 | 部位大小、ccxt 擷取與 parquet 快取、輸出 |
-
-**164 個模組裡有 126 個是偵測器，其餘全部是阻止那些偵測器騙我的機制。** 那個比例就是這個專案。
 
 資料經 `ccxt` 取得，用 `pyarrow` 快取成 parquet，所以重跑不會重新下載，而同一個窗口的兩次執行比較的是同一批 K 棒。
 
@@ -212,13 +210,8 @@ Arbitrator 也會忽略任何沒有 v2 強度的訊號，這讓 v1 與 v2 兩套
 
 | 項目 | 內容 |
 |---|---|
-| **執行環境** | Python,`ccxt` ≥4.2 · `pandas` ≥2.1 · `numpy` ≥1.26 · `pyarrow` ≥15（parquet 快取）· `scipy` ≥1.11 · `PyYAML` · `matplotlib` |
-| **執行模型** | 次根開盤成交、逆向滑價、兩腿 taker 費率、影線雙穿時採「先打停損」的悲觀約定、依流動性分級的滑價並帶每萬美元名目的線性衝擊 |
-| **驗證** | 滾動 walk-forward，參數掃描限縮在訓練切片、凍結後才套上測試切片；紀錄是串接起來的測試切片 |
 | **訊號層** | 126 個偵測器模組，v2 訊號帶 catalog ID、1–5 強度、factors、zone 與 regime fit |
 | **仲裁** | 來自書面目錄的六條編號規則：反向硬排除、同類別收斂、跨類別加成、filter 只能有負向效果、強度修飾、市況硬性排除 |
-| **前推模式** | 約 3,300 行的紙上交易 runner，帶虛擬投資組合，只取市場資料 |
-| **規格** | 72 份文件、約 29,750 行，程式碼引用條款編號與審查決定 |
 
 **不在本文件內：** 策略本身、偵測器邏輯、門檻與調校常數。
 

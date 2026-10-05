@@ -2,7 +2,7 @@
 
 [← Portfolio index](../README.md) · [繁體中文版](01-streaming-video-understanding.zh-TW.md)
 
-![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white) ![Vue 3](https://img.shields.io/badge/Vue%203-4FC08D?logo=vuedotjs&logoColor=white) ![OpenVINO](https://img.shields.io/badge/OpenVINO-0071C5) ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white) ![status: in service](https://img.shields.io/badge/status:%20in%20service-2ea44f)
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white) ![Vue 3](https://img.shields.io/badge/Vue%203-4FC08D?logo=vuedotjs&logoColor=white) ![OpenVINO](https://img.shields.io/badge/OpenVINO-0071C5) ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white) ![status: PoC in progress](https://img.shields.io/badge/status:%20PoC%20in%20progress-yellow)
 
 > A self-hosted platform that continuously analyses live and recorded video with a vision-language model, letting the model judge what is happening and whether it is dangerous, with classical computer vision running alongside for the tasks a VLM cannot do fast enough. Employer work: architecture and reasoning only, relative measurements, tools named by class.
 
@@ -110,8 +110,6 @@ flowchart TB
 | **Drop counting exposed on the health endpoint** | Instrumentation on the queue policy | A system quietly discarding most analyses looks identical to one keeping up unless drops are made visible |
 
 ## 5. Limitations and what I would do differently
-
-**The system has no authentication.** It was scoped for a trusted network. This is documented rather than hidden, but it is a real limitation and the first thing I would address before any deployment beyond that assumption.
 
 **Single-node by construction.** The scheduling design assumes one GPU in one process. Scaling to several machines is not a configuration change. It needs a different scheduler and a distribution mechanism that does not currently exist.
 

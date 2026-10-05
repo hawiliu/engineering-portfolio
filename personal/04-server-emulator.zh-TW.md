@@ -1,4 +1,4 @@
-# 遊戲伺服器模擬
+# 多角色 TCP 遊戲伺服器（.NET 10）
 
 [← 作品集索引](../README.zh-TW.md) · [English version](04-server-emulator.md)
 
@@ -44,8 +44,8 @@ solution（12 個專案）
 ├── packets      7,853  →  common, utils      39 個型別化定義，零 NuGet 套件
 ├── network        762  →  packets, logging   Socket、framing
 ├── emulator     6,351  →  network, packets, common, logging, utils
-├── monitor      3,260  →  network, packets, logging, utils
-├── proxy        5,187  →  network, packets, logging
+├── tool-a       3,260  →  network, packets, logging, utils
+├── tool-b       5,187  →  network, packets, logging
 ├── tests          519  →  packets, utils
 └── tools/       ...     13,195 + 921 + 471
 ```
@@ -54,7 +54,7 @@ solution（12 個專案）
 flowchart BT
     UTILS["utils"]; COMMON["common"]; LOG["logging"]
     PKT["packets · 39 個型別化訊息"]; NET["network"]
-    EMU["emulator"]; MON["monitor"]; PROXY["proxy"]
+    EMU["emulator"]; MON["auxiliary tool A"]; PROXY["auxiliary tool B"]
     LOG --> UTILS
     PKT --> COMMON & UTILS
     NET --> PKT & LOG
@@ -228,7 +228,7 @@ public class PacketReader : BinaryReader
 <details>
 <summary><b>靜態資料是 build 階段的管線，不是一個載入器</b></summary>
 
-參考表以 CSV 放在共用的 `Resource/` 資料夾，由專案檔連結進輸出目錄：
+遊戲資料表以 CSV 放在共用的 `Resource/` 資料夾，由專案檔連結進輸出目錄：
 
 ```xml
 <None Include="..\Resource\items\equipment.csv">
@@ -241,7 +241,7 @@ public class PacketReader : BinaryReader
 </None>
 ```
 
-九組這樣的設定涵蓋動作、怪物、怪物戰鬥屬性、裝備、消耗品、地圖、地圖生成與傳送點表、NPC 與商店定義，以及一份效果 slot 對應表，另有保留原格式的二進位碰撞檔。它們由工具專案與觀察產生，在這裡被消費。
+九組這樣的設定涵蓋動作、怪物、怪物戰鬥屬性、裝備、消耗品、地圖、地圖生成與傳送點表、NPC 與商店定義，以及一份效果 slot 對應表。
 
 **相對於「從內容目錄讀取的載入器」的好處：** 資料是 build 的輸入，所以缺檔是一個在磁碟上看得見的 build 輸出問題，而不是第一次使用時的 null；而 `PreserveNewest` 意味著改一個 CSV 不需要重建程式碼。這些表一次載入進 singleton 登錄，三個伺服器唯讀共用。
 
@@ -260,8 +260,8 @@ flowchart BT
     PKT["packets · 7,853<br/>39 個型別化定義"]
     NET["network · 762"]
     EMU["emulator · 6,351"]
-    MON["monitor · 3,260"]
-    PROXY["proxy · 5,187"]
+    MON["auxiliary tool A · 3,260"]
+    PROXY["auxiliary tool B · 5,187"]
 
     LOG --> UTILS
     PKT --> COMMON & UTILS
@@ -275,7 +275,7 @@ flowchart BT
     style EMU fill:#e8f4fd,stroke:#2b6cb0
 ```
 
-`emulator`、`monitor`、`proxy` 是同一層的三個獨立執行檔，沒有任何一個引用另外兩個，三個都讀同一份 39 個型別化訊息定義。`packets` **沒有任何套件依賴**，它是純 BCL，而這正是三個不相干的消費者能引用它、卻不必一起繼承一棵依賴樹的原因。
+`emulator` 與兩個輔助開發工具是同一層的三個獨立執行檔，沒有任何一個引用另外兩個，三個都讀同一份 39 個型別化訊息定義。`packets` **沒有任何套件依賴**，它是純 BCL，而這正是三個不相干的消費者能引用它、卻不必一起繼承一棵依賴樹的原因。
 
 把那些定義放進伺服器，會逼另外兩個去複製它，而複製過的定義會漂移：兩個程式對同一段位元組的理解不一致，但兩邊都編譯得過。
 
@@ -307,18 +307,9 @@ flowchart BT
 
 | 項目 | 內容 |
 |---|---|
-| **執行環境** | .NET 10,`ImplicitUsings`，啟用 `Nullable` |
-| **託管** | `Microsoft.Extensions.Hosting` 9.0.3 · `Host.CreateDefaultBuilder` · `BackgroundService` · Options pattern 綁定 `appsettings.json` |
-| **DI** | `Microsoft.Extensions.DependencyInjection`,singleton 生命週期，具體型別加 hosted service 的雙重註冊 |
-| **網路** | `System.Net.Sockets.Socket`、`AcceptAsync(CancellationToken)`、backlog 65,535、`System.Buffers.Binary.BinaryPrimitives` 搭 `Span<byte>`、長度前綴 framing 與串流重組 |
-| **序列化** | `BinaryReader` 子類別加上大端序讀取方法，逐訊息 parse 與 serialise，輸入壞掉回傳 null |
-| **分派** | 自訂 `Attribute`、`Assembly.GetTypes()` 掃描、`Activator.CreateInstance`、以訊息型別為鍵的字典 |
-| **持久化** | `IAccountRepository` → `JsonDB`（一帳號一資料夾、一角色一 JSON）、`ISessionManager` → 記憶體內 |
-| **靜態資料** | CSV 經 `.csproj` 的 `None Include` + `CopyToOutputDirectory=PreserveNewest` 連結，載入 singleton 登錄 |
-| **測試** | NUnit 4.3.2、`Microsoft.NET.Test.Sdk` 17.14.0、`coverlet.collector` |
 | **行數分布** | 工具 23,034(57%)· 訊息 7,853(19%)· **伺服器 6,351(16%)** · `common` 1,785 · 傳輸 762 · 測試/utils/logging 916 |
 
-**不在本文件內：** 訊息佈局與識別字數值、framing 常數、型別對應表的內容，以及那五個工具專案。上面引用的程式碼裡，足以辨識出客戶端的型別名稱都做了輕微改名，其餘照原樣引用。
+**不在本文件內：** 訊息佈局與識別字數值、framing 常數、型別對應表的內容，以及那五個工具專案。
 
 **取得方式。** 實作是私有的。面談階段可以安排讀取權限。
 

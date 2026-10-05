@@ -1,4 +1,4 @@
-# Game Server Emulator
+# Multi-Role TCP Game Server (.NET 10)
 
 [← Portfolio index](../README.md) · [繁體中文版](04-server-emulator.zh-TW.md)
 
@@ -44,8 +44,8 @@ solution  (12 projects)
 ├── packets      7,853  →  common, utils      39 typed definitions, zero NuGet packages
 ├── network        762  →  packets, logging   Socket, framing
 ├── emulator     6,351  →  network, packets, common, logging, utils
-├── monitor      3,260  →  network, packets, logging, utils
-├── proxy        5,187  →  network, packets, logging
+├── tool-a       3,260  →  network, packets, logging, utils
+├── tool-b       5,187  →  network, packets, logging
 ├── tests          519  →  packets, utils
 └── tools/       ...     13,195 + 921 + 471
 ```
@@ -54,7 +54,7 @@ solution  (12 projects)
 flowchart BT
     UTILS["utils"]; COMMON["common"]; LOG["logging"]
     PKT["packets · 39 typed messages"]; NET["network"]
-    EMU["emulator"]; MON["monitor"]; PROXY["proxy"]
+    EMU["emulator"]; MON["auxiliary tool A"]; PROXY["auxiliary tool B"]
     LOG --> UTILS
     PKT --> COMMON & UTILS
     NET --> PKT & LOG
@@ -228,7 +228,7 @@ public class PacketReader : BinaryReader
 <details>
 <summary><b>Static data is a build-time pipeline, not a loader</b></summary>
 
-Reference tables live as CSV in a shared `Resource/` folder and are linked into the output by the project file:
+Game data tables live as CSV in a shared `Resource/` folder and are linked into the output by the project file:
 
 ```xml
 <None Include="..\Resource\items\equipment.csv">
@@ -241,7 +241,7 @@ Reference tables live as CSV in a shared `Resource/` folder and are linked into 
 </None>
 ```
 
-Nine such groups cover actions, monsters, monster combat stats, equipment, usable items, maps, map spawn and portal tables, NPC and shop definitions, and an effect-slot mapping, plus binary collision files kept in their original format. They are produced by the tooling projects and by observation, then consumed here.
+Nine such groups cover actions, monsters, monster combat stats, equipment, usable items, maps, map spawn and portal tables, NPC and shop definitions, and an effect-slot mapping.
 
 **The advantage over a loader that reads from a content directory:** the data is a build input, so a missing file is a build-output problem visible on disk rather than a null at first use, and `PreserveNewest` means editing a CSV does not require a rebuild of the code. The tables are loaded once into singleton registries and shared read-only across all three servers.
 
@@ -260,8 +260,8 @@ flowchart BT
     PKT["packets · 7,853<br/>39 typed definitions"]
     NET["network · 762"]
     EMU["emulator · 6,351"]
-    MON["monitor · 3,260"]
-    PROXY["proxy · 5,187"]
+    MON["auxiliary tool A · 3,260"]
+    PROXY["auxiliary tool B · 5,187"]
 
     LOG --> UTILS
     PKT --> COMMON & UTILS
@@ -275,7 +275,7 @@ flowchart BT
     style EMU fill:#e8f4fd,stroke:#2b6cb0
 ```
 
-`emulator`, `monitor` and `proxy` are three separate executables at the same level, none referencing the others, all reading the same 39 typed message definitions. `packets` has **zero package references**: it is pure BCL, which is what lets three unrelated consumers take it without inheriting a dependency tree.
+`emulator` and the two auxiliary development tools are three separate executables at the same level, none referencing the others, all reading the same 39 typed message definitions. `packets` has **zero package references**: it is pure BCL, which is what lets three unrelated consumers take it without inheriting a dependency tree.
 
 Putting those definitions inside the server would force the other two to duplicate them, and a duplicated definition drifts: two programs disagree about the same bytes while both compile.
 
@@ -307,18 +307,9 @@ In order: validate the registry at startup, test dispatch, then replace `Activat
 
 | Item | Detail |
 |---|---|
-| **Runtime** | .NET 10, `ImplicitUsings`, `Nullable` enabled |
-| **Hosting** | `Microsoft.Extensions.Hosting` 9.0.3 · `Host.CreateDefaultBuilder` · `BackgroundService` · Options pattern bound to `appsettings.json` |
-| **DI** | `Microsoft.Extensions.DependencyInjection`, singleton lifetimes, concrete-plus-hosted double registration |
-| **Networking** | `System.Net.Sockets.Socket`, `AcceptAsync(CancellationToken)`, backlog 65,535, `System.Buffers.Binary.BinaryPrimitives` over `Span<byte>`, length-prefixed framing with stream reassembly |
-| **Serialisation** | `BinaryReader` subclass adding big-endian readers, per-message parse and serialise, null on malformed input |
-| **Dispatch** | Custom `Attribute`, `Assembly.GetTypes()` scan, `Activator.CreateInstance`, dictionary keyed by message type |
-| **Persistence** | `IAccountRepository` → `JsonDB` (folder per account, JSON per character), `ISessionManager` → in-memory |
-| **Static data** | CSV linked via `.csproj` `None Include` + `CopyToOutputDirectory=PreserveNewest`, loaded into singleton registries |
-| **Testing** | NUnit 4.3.2, `Microsoft.NET.Test.Sdk` 17.14.0, `coverlet.collector` |
 | **Line distribution** | Tooling 23,034 (57%) · messages 7,853 (19%) · **server 6,351 (16%)** · `common` 1,785 · transport 762 · tests, utils, logging 916 |
 
-**Not in this document:** message layouts and identifier values, framing constants, the contents of the type map, and the five tool projects. Type names that would identify the client are lightly renamed in the excerpts above; everything else is quoted as written.
+**Not in this document:** message layouts and identifier values, framing constants, the contents of the type map, and the five tool projects.
 
 **Availability.** The implementation is private. Read access can be arranged for hiring conversations.
 
